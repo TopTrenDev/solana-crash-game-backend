@@ -13,6 +13,7 @@ import rateLimiter from '@/common/middleware/rateLimiter';
 import requestLogger from '@/common/middleware/requestLogger';
 import { startSocketServer } from '@/common/utils/socketHandler';
 import { env } from '@/common/utils/envConfig';
+import { crashRouter } from './api/crash/crashRouter';
 
 const logger = pino({ name: 'server start' });
 const app: Express = express();
@@ -31,6 +32,7 @@ app.use(requestLogger);
 // Routes
 app.use('/health-check', healthCheckRouter);
 app.use('/users', userRouter);
+app.use('/crash', crashRouter);
 
 // Swagger UI
 app.use(openAPIRouter);
