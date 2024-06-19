@@ -144,6 +144,12 @@ const calculateGamePayout = (ms: number): number => {
   return Math.max(gamePayout, 1);
 };
 
+// Get all game history
+const getGameHistory = async () => {
+  const finishedGames = await CrashGame.find({ status: GAME_STATES.Over });
+  return finishedGames;
+};
+
 // Get socket.io instance
 const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>) => {
   // Function to emit new player bets
@@ -922,4 +928,4 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
 };
 
 // Export functions
-export { listen, getCurrentGame, getPrivateHash, formatGame, formatGameHistory };
+export { listen, getCurrentGame, getPrivateHash, formatGame, formatGameHistory, getGameHistory };
