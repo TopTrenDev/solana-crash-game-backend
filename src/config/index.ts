@@ -21,7 +21,7 @@ export const site = {
 // Each specific game configuration
 export const database = {
   developmentMongoURI: 'mongodb://127.0.0.1:27017/solcrash', // MongoURI to use in development
-  productionMongoURI: 'mongodb+srv://backend:5hQSj27i8Leezjfu@us-east-cluster.wooxyzl.mongodb.net/', // MongoURI to use in production
+  productionMongoURI: 'mongodb+srv://oliverb25f:FujiOka8-1225@cluster0.ughyjc0.mongodb.net/crash', // MongoURI to use in production
 };
 
 export const games = {
