@@ -145,9 +145,23 @@ const calculateGamePayout = (ms: number): number => {
 };
 
 // Get all game history
-const getGameHistory = async () => {
-  const finishedGames = await CrashGame.find({ status: GAME_STATES.Over });
-  return finishedGames;
+const getGameHistory = async (limit?: number) => {
+  try {
+    return await CrashGame.aggregate([
+      {
+        $match: {
+          status: GAME_STATES.Over,
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      {
+        $limit: limit ? limit : 20,
+      },
+    ]);
+  } catch (e) {
+    console.error(e);
+    return [];
+  }
 };
 
 // Get socket.io instance
@@ -725,6 +739,21 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
         } else {
           return next();
         }
+      });
+
+      /**
+       * @description Get previous history
+       *
+       * @param {number} limit Limit amount
+       */
+      socket.on('previous-crashgame-history', async (limit: number) => {
+        // Validate user input
+        if (typeof limit !== 'number' || isNaN(limit))
+          return socket.emit('get-crashgame-history-error', 'Invalid limit type!');
+
+        const histories = await getGameHistory(limit);
+
+        return socket.emit('previous-crashgame-history-response', histories);
       });
 
       /**

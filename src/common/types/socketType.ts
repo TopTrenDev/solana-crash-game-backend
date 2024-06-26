@@ -19,16 +19,19 @@ export interface ServerToClientEvents {
   'game-end': (data: { game: FormattedGameHistoryType }) => void;
   'game-tick': (data: number) => void;
   'user banned': () => void;
+  'get-crashgame-history-error': (data: string) => void;
   'game-join-error': (data: string) => void;
   'game-join-success': (data: FormattedPlayerBetType) => void;
   'bet-cashout-error': (data: string) => void;
   'bet-cashout-success': (result: any) => void;
+  'previous-crashgame-history-response': (result: any) => void;
   connection_kicked: () => void;
 }
 
 export interface ClientToServerEvents {
   hello: () => void;
   auth: (token: string) => void;
+  'previous-crashgame-history': (limit: number) => void;
   'join-game': (target: number, betAmount: number) => void;
   'bet-cashout': () => void;
 }
