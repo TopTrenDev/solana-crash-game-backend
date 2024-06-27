@@ -1,16 +1,35 @@
-import { User } from '@/api/user/userModel';
+// import { User } from '@/api/user/userModel';
+import User, { UserDocumentType } from '@/common/models/User';
 
-export const users: User[] = [
-  { id: 1, name: 'Alice', email: 'alice@example.com', age: 42, createdAt: new Date(), updatedAt: new Date() },
-  { id: 2, name: 'Bob', email: 'bob@example.com', age: 21, createdAt: new Date(), updatedAt: new Date() },
-];
+// export const users: User[] = [
+//   { id: 1, username: 'Alice', email: 'alice@example.com', age: 42, createdAt: new Date(), updatedAt: new Date() },
+//   { id: 2, username: 'Bob', email: 'bob@example.com', age: 21, createdAt: new Date(), updatedAt: new Date() },
+// ];
 
 export const userRepository = {
-  findAllAsync: async (): Promise<User[]> => {
-    return users;
+  findAllAsync: async (): Promise<UserDocumentType[]> => {
+    return User.find();
   },
 
-  findByIdAsync: async (id: number): Promise<User | null> => {
-    return users.find((user) => user.id === id) || null;
+  findByIdAsync: async (id: number): Promise<UserDocumentType | null> => {
+    return User.findById(id) || null;
+  },
+
+  findByEmailAsync: async (email: string): Promise<UserDocumentType | null> => {
+    return User.findOne({ email }) || null;
+  },
+
+  findByUsernameAsync: async (username: string): Promise<UserDocumentType | null> => {
+    return User.findOne({ username }) || null;
+  },
+
+  createUser: async (username: string, email: string, password: string): Promise<UserDocumentType> => {
+    const user = new User({
+      username,
+      email,
+      password,
+    });
+    await user.save();
+    return user;
   },
 };
