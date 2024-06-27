@@ -1,12 +1,12 @@
 {
   "name": "solcrash-server",
   "version": "1.0.9",
-  "description": "solana crash backend",
+  "description": "solcrash backend",
   "main": "index.ts",
   "private": true,
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/index.ts | pino-pretty",
-    "build": "tsup",
+    "build": "rimraf dist && tsup",
     "start": "node dist/index.js",
     "clean": "rimraf dist coverage",
     "lint": "eslint",
@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:dev": "vitest dev",
     "test:cov": "vitest run --coverage",
-    "release": "semantic-release"
+    "release": "semantic-release",
+    "prepare": "husky"
   },
   "dependencies": {
     "@asteasolutions/zod-to-openapi": "^7.0.0",
