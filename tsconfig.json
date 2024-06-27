@@ -17,6 +17,9 @@
     "ignoreDeprecations": "5.0",
     "types": ["vitest/globals"]
   },
+  "ts-node": {
+    "esm": true
+  },
   "extends": [],
   "exclude": ["node_modules"],
   "include": ["src/**/*.ts"]

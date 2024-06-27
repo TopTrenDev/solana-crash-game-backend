@@ -10,6 +10,7 @@ const UserSchema = new Schema({
   provider: String,
   providerId: String,
   username: String,
+  email: String,
   password: String,
   avatar: String,
 
@@ -196,6 +197,7 @@ export interface IUserDocumentType {
   provider: string;
   providerId: string;
   username: string;
+  email: string;
   password: string;
   avatar: string;
   rank: number;
