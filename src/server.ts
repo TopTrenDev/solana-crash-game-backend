@@ -5,14 +5,11 @@ import bodyParser from 'body-parser';
 import helmet from 'helmet';
 import { pino } from 'pino';
 
-import { healthCheckRouter } from '@/api/healthCheck/healthCheckRouter';
-import { userRouter } from '@/api/user/userRouter';
-import { authRouter } from '@/api/auth/authRouter';
-import { openAPIRouter } from '@/api-docs/openAPIRouter';
 import errorHandler from '@/common/middleware/errorHandler';
 import rateLimiter from '@/common/middleware/rateLimiter';
 import requestLogger from '@/common/middleware/requestLogger';
 import { startSocketServer } from '@/common/utils/socketHandler';
+import router from './api';
 
 const logger = pino({ name: 'server start' });
 const app: Express = express();
@@ -29,13 +26,8 @@ app.use(bodyParser.json());
 // Request logging
 app.use(requestLogger);
 
-// Routes
-app.use('/health-check', healthCheckRouter);
-app.use('/users', userRouter);
-app.use('/auth', authRouter);
-
-// Swagger UI
-app.use(openAPIRouter);
+// Router
+app.use('/api/v1', router);
 
 // Error handlers
 app.use(errorHandler());

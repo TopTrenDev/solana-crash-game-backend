@@ -698,6 +698,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
         try {
           // Verify token
           const decoded = jwt.verify(token, authentication.jwtSecret) as JwtPayload;
+          console.log('decoded.user', decoded.user);
 
           user = await User.findOne({ _id: decoded.user.id });
 

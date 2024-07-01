@@ -23,7 +23,7 @@ export const authRouter: Router = (() => {
   });
   router.post('/register', validateRequest(RegisterUserSchema), async (req: Request, res: Response) => {
     const { username, email, password, confirmPassword } = req.body;
-    const serviceResponse = await authService.register(username, email, password, confirmPassword);
+    const serviceResponse = await authService.register({ username, email, password, confirmPassword });
     handleServiceResponse(serviceResponse, res);
   });
 
@@ -36,7 +36,7 @@ export const authRouter: Router = (() => {
   });
   router.post('/login', validateRequest(LoginUserSchema), async (req: Request, res: Response) => {
     const { email, password } = req.body;
-    const serviceResponse = await authService.login(email, password);
+    const serviceResponse = await authService.login({ email, password });
     handleServiceResponse(serviceResponse, res);
   });
 
