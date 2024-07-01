@@ -30,7 +30,7 @@ const UserSchema = new Schema({
   },
 
   // Site balance
-  wallet: {
+  credit: {
     type: Number,
     default: 0,
   },
@@ -162,6 +162,14 @@ const UserSchema = new Schema({
     default: 0,
   },
 
+  leaderboard: {
+    type: Map,
+    of: {
+      betAmount: Number,
+      winAmount: Number,
+    },
+  },
+
   // Total amount of deposits
   totalDeposited: {
     type: Number,
@@ -193,7 +201,13 @@ const UserSchema = new Schema({
   },
 });
 
-export interface IUserDocumentType {
+// Define the interface for the nested map structure
+interface LeaderboardEntry {
+  betAmount: number;
+  winAmount: number;
+}
+
+export interface UserDocumentType extends Document {
   provider: string;
   providerId: string;
   username: string;
@@ -201,8 +215,9 @@ export interface IUserDocumentType {
   password: string;
   avatar: string;
   rank: number;
-  wallet: number;
+  credit: number;
   wager: number;
+  leaderboard: Map<string, LeaderboardEntry>;
   crypto: any; // Specify more detailed type if possible
   hasVerifiedAccount: boolean;
   verifiedPhoneNumber: string | null;
@@ -232,9 +247,6 @@ export interface IUserDocumentType {
   avatarLastUpdate: number;
   created: Date;
 }
-
-// Extend Document to include the User schema fields
-export interface UserDocumentType extends Document, IUserDocumentType {}
 
 // Create and export the new model
 const User = mongoose.model<UserDocumentType>('User', UserSchema);

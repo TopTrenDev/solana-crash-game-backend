@@ -1,3 +1,4 @@
+import { Socket } from 'socket.io';
 import { VIPLevelType } from './vipType';
 
 export interface GameStateType {
@@ -13,6 +14,7 @@ export interface GameStateType {
   privateSeed: string | null;
   privateHash: string | null;
   publicSeed: string | null;
+  connectedUsers: { [key: string]: Socket };
   createdAt?: Date;
 }
 

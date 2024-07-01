@@ -73,5 +73,5 @@ export const blochain = {
 export const authentication = {
   jwtSecret: 'vf4Boy2WT1bVgphxFqjEY2GjciChkXvf4Boy2WT1hkXv2', // Secret used to sign JWT's. KEEP THIS AS A SECRET 45 length
   jwtExpirationTime: 360000, // JWT-token expiration time (in seconds)
-  revenueId: '65ab8f6ed19ce703808382b2',
+  revenueId: '66826fa43270000000000a52',
 };
