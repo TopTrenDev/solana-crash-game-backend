@@ -2,7 +2,7 @@ import { env } from '@/common/utils/envConfig';
 import { logger, httpServer } from '@/server';
 import connectDatabase from '@/common/utils/connetDatabase';
 
-process.title = 'prometheus-api';
+process.title = 'solacrash -api';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const PORT = process.env.PORT || 8080;
 

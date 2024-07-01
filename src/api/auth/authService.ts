@@ -7,6 +7,9 @@ import { logger } from '@/server';
 import { UserDocumentType } from '@/common/models/User';
 import { authentication } from '@/config';
 import jwt from 'jsonwebtoken';
+import { IGenerateParams, TSignIn, TSignUp } from './authType';
+import createToken from '@/common/utils/createToken';
+import { ObjectId } from 'mongoose';
 
 interface ILoginResponse {
   auth: {
@@ -17,12 +20,12 @@ interface ILoginResponse {
 
 export const authService = {
   // Register new user
-  register: async (
-    username: string,
-    email: string,
-    password: string,
-    confirmPassword: string
-  ): Promise<ServiceResponse<UserDocumentType | null>> => {
+  register: async ({
+    username,
+    email,
+    password,
+    confirmPassword,
+  }: TSignUp): Promise<ServiceResponse<UserDocumentType | null>> => {
     try {
       if (password !== confirmPassword) {
         return new ServiceResponse(ResponseStatus.Failed, 'Passwords do not match', null, StatusCodes.BAD_REQUEST);
@@ -51,7 +54,7 @@ export const authService = {
   },
 
   // login user
-  login: async (email: string, password: string): Promise<ServiceResponse<ILoginResponse | null>> => {
+  login: async ({ email, password }: TSignIn): Promise<ServiceResponse<ILoginResponse | null>> => {
     try {
       const user = await userRepository.findByEmailAsync(email);
       if (!user) {
@@ -64,23 +67,30 @@ export const authService = {
         return new ServiceResponse(ResponseStatus.Failed, 'Incorrect password', null, StatusCodes.BAD_REQUEST);
       }
 
-      const payload = {
-        user: {
-          id: user.id,
-        },
-      };
+      const authToken = tokenGenerate({
+        userId: user._id as ObjectId,
+      });
 
-      const token = jwt.sign(payload, authentication.jwtSecret, { expiresIn: authentication.jwtExpirationTime });
-      return new ServiceResponse(
-        ResponseStatus.Success,
-        'Logged in',
-        { auth: { accessToken: token }, user },
-        StatusCodes.OK
-      );
+      return new ServiceResponse(ResponseStatus.Success, 'Logged in', { auth: authToken, user }, StatusCodes.OK);
     } catch (ex) {
-      const errorMessage = `Error registering user with email ${email}:, ${(ex as Error).message}`;
+      const errorMessage = `Error logging user with email ${email}:, ${(ex as Error).message}`;
       logger.error(errorMessage);
       return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR);
     }
   },
+};
+
+const { jwtSecret, jwtExpirationTime } = authentication;
+
+const tokenGenerate = (params: IGenerateParams, expiresIn?: number) => {
+  const accessExpiresIn = expiresIn || Number(jwtExpirationTime).valueOf();
+  const refreshExpiresIn = expiresIn || Number(jwtExpirationTime).valueOf();
+  const access = createToken(params, jwtSecret, accessExpiresIn);
+  const refresh = createToken(params, jwtSecret, refreshExpiresIn);
+
+  return {
+    accessToken: access.token,
+    refreshToken: refresh.token,
+    expiresIn: access.expiresIn,
+  };
 };
