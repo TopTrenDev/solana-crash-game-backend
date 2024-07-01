@@ -28,6 +28,7 @@ export const userRepository = {
       username,
       email,
       password,
+      credit: 1000,
     });
     await user.save();
     return user;

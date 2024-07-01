@@ -9,7 +9,7 @@ export interface ServerToClientEvents {
   'user banned': () => void;
   'notify-error': (data: string) => void;
   'game-join-error': (data: string) => void;
-  'update-wallet': (data: number, denom: string) => void;
+  'update-credit': (data: number) => void;
   'bet-cashout-error': (data: string) => void;
   'bet-cashout-success': (result: any) => void;
   'game-call-bot-error': (error: string) => void;
