@@ -36,4 +36,86 @@ export const userService = {
       return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR);
     }
   },
+
+  // createUser
+  createUser: async (userData: Partial<UserDocumentType>): Promise<ServiceResponse<UserDocumentType | null>> => {
+    try {
+      if (userData.password) {
+        userData.password = await bcrypt.hash(userData.password, 10);
+      }
+      const newUser = await userRepository.createUser(userData);
+      if (!newUser) {
+        return new ServiceResponse(ResponseStatus.Failed, 'User created Failed', null, StatusCodes.NOT_FOUND);
+      }
+      return new ServiceResponse<UserDocumentType>(
+        ResponseStatus.Success,
+        'Create User success',
+        newUser,
+        StatusCodes.OK
+      );
+    } catch (ex) {
+      const errorMessage = `Error creating new User`;
+      logger.error(errorMessage);
+      return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+  },
+
+  // updateUser
+  updateUser: async (
+    id: string,
+    userData: Partial<UserDocumentType>
+  ): Promise<ServiceResponse<UserDocumentType | null>> => {
+    try {
+      if (userData.password) {
+        userData.password = await bcrypt.hash(userData.password, 10);
+      }
+      const updateUser = await User.findOneAndUpdate({ _id: new mongoose.Types.ObjectId(id) }, userData);
+      if (!updateUser) {
+        return new ServiceResponse(ResponseStatus.Failed, 'User updated Failed', null, StatusCodes.NOT_FOUND);
+      }
+      return new ServiceResponse<UserDocumentType>(
+        ResponseStatus.Success,
+        'Update User success',
+        updateUser,
+        StatusCodes.OK
+      );
+    } catch (ex) {
+      const errorMessage = `Error updating new User`;
+      logger.error(errorMessage);
+      return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+  },
+
+  // updateUser
+  updateUserBalance: async (
+    userId: string,
+    updateParams: string,
+    updatefield: number
+  ): Promise<ServiceResponse<UserDocumentType | null>> => {
+    try {
+      await User.updateOne(
+        { _id: userId },
+        {
+          $set: {
+            [updateParams]: updatefield,
+          },
+        }
+      );
+      const updatedUser = await User.findById(userId);
+      if (!updatedUser) {
+        return new ServiceResponse(ResponseStatus.Failed, 'User updated Failed', null, StatusCodes.NOT_FOUND);
+      }
+      return new ServiceResponse<UserDocumentType>(
+        ResponseStatus.Success,
+        'Update User success',
+        updatedUser,
+        StatusCodes.OK
+      );
+    } catch (ex) {
+      const errorMessage = `Error updating new User`;
+      logger.error(errorMessage);
+      console.error(ex);
+      return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+  },
 };
