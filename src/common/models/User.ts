@@ -29,6 +29,12 @@ const UserSchema = new Schema({
      */
   },
 
+  // Wallet address
+  wallet: {
+    publicKey: { type: String },
+    privateKey: { type: String },
+  },
+
   // Site balance
   credit: {
     type: Number,
@@ -215,6 +221,7 @@ export interface UserDocumentType extends Document {
   password: string;
   avatar: string;
   rank: number;
+  wallet: { publicKey: string; privateKey: string };
   credit: number;
   wager: number;
   leaderboard: Map<string, LeaderboardEntry>;

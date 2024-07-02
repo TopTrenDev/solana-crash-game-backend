@@ -6,7 +6,6 @@ import { ResponseStatus, ServiceResponse } from '@/common/models/serviceResponse
 import { logger } from '@/server';
 import { UserDocumentType } from '@/common/models/User';
 import { authentication } from '@/config';
-import jwt from 'jsonwebtoken';
 import { IGenerateParams, TSignIn, TSignUp } from './authType';
 import createToken from '@/common/utils/createToken';
 import { ObjectId } from 'mongoose';
@@ -43,7 +42,7 @@ export const authService = {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
-      const newUser = await userRepository.createUser(username, email, hashedPassword);
+      const newUser = await userRepository.createUser({ username, email, password: hashedPassword });
 
       return new ServiceResponse<UserDocumentType>(ResponseStatus.Success, 'Registered', newUser, StatusCodes.OK);
     } catch (ex) {
@@ -73,8 +72,8 @@ export const authService = {
 
       return new ServiceResponse(ResponseStatus.Success, 'Logged in', { auth: authToken, user }, StatusCodes.OK);
     } catch (ex) {
+      logger.error(ex);
       const errorMessage = `Error logging user with email ${email}:, ${(ex as Error).message}`;
-      logger.error(errorMessage);
       return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR);
     }
   },
