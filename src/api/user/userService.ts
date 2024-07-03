@@ -4,7 +4,8 @@ import bcrypt from 'bcryptjs';
 import { userRepository } from '@/api/user/userRepository';
 import { ResponseStatus, ServiceResponse } from '@/common/models/serviceResponse';
 import { logger } from '@/server';
-import { UserDocumentType } from '@/common/models/User';
+import User, { UserDocumentType } from '@/common/models/User';
+import mongoose from 'mongoose';
 
 export const userService = {
   // Retrieves all users from the database
@@ -86,29 +87,17 @@ export const userService = {
     }
   },
 
-  // updateUser
-  updateUserBalance: async (
-    userId: string,
-    updateParams: string,
-    updatefield: number
-  ): Promise<ServiceResponse<UserDocumentType | null>> => {
+  // get balance
+  getCreditBalance: async (userId: string): Promise<ServiceResponse<UserDocumentType | null>> => {
     try {
-      await User.updateOne(
-        { _id: userId },
-        {
-          $set: {
-            [updateParams]: updatefield,
-          },
-        }
-      );
-      const updatedUser = await User.findById(userId);
-      if (!updatedUser) {
-        return new ServiceResponse(ResponseStatus.Failed, 'User updated Failed', null, StatusCodes.NOT_FOUND);
+      const user = await User.findById(userId);
+      if (!user) {
+        return new ServiceResponse(ResponseStatus.Failed, 'User not found', null, StatusCodes.NOT_FOUND);
       }
       return new ServiceResponse<UserDocumentType>(
         ResponseStatus.Success,
-        'Update User success',
-        updatedUser,
+        'Fetch user credit balance success',
+        user.credit,
         StatusCodes.OK
       );
     } catch (ex) {

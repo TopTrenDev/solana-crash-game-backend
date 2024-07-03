@@ -48,7 +48,7 @@ export const userRouter: Router = (() => {
 
   userRegistry.registerPath({
     method: 'post',
-    path: '/users/{id}/balance',
+    path: '/users/balance',
     tags: ['User'],
     request: { params: GetUserSchema.shape.params },
     requestBody: {
@@ -68,90 +68,7 @@ export const userRouter: Router = (() => {
     responses: createApiResponse(UserSchema, 'Success'),
   });
 
-  // router.post('/:id/balance', async (req: Request, res: Response) => {
-  //   try {
-  //     const id = req.params.id as string;
-  //     const updateBalanceParam = req.body as TUpdateBalance;
-
-  //     const user = await User.findById(id);
-  //     const updateParams = `wallet.${updateBalanceParam.balanceType}`;
-  //     const walletValue = user?.wallet?.get(updateBalanceParam.balanceType)! ?? 0;
-  //     let updateValue = 0;
-  //     // check balance
-  //     if (updateBalanceParam.actionType === 'withdraw') {
-  //       if (walletValue < updateBalanceParam.amount) {
-  //         const despositErrorRes = new ServiceResponse(
-  //           ResponseStatus.Failed,
-  //           'not enough token balancez',
-  //           null,
-  //           StatusCodes.INTERNAL_SERVER_ERROR
-  //         );
-  //         handleServiceResponse(despositErrorRes, res);
-  //       } else {
-  //         console.log({
-  //           address: updateBalanceParam.address,
-  //           amount: updateBalanceParam.amount,
-  //           tokenType: updateBalanceParam.balanceType,
-  //         });
-  //         const resPayment = await paymentService.cryptoWithdrawFromAdmin({
-  //           address: updateBalanceParam.address,
-  //           amount: updateBalanceParam.amount,
-  //           tokenType: updateBalanceParam.balanceType,
-  //         });
-  //         if (!resPayment) {
-  //           const despositErrorRes = new ServiceResponse(
-  //             ResponseStatus.Failed,
-  //             'unable deposit',
-  //             null,
-  //             StatusCodes.INTERNAL_SERVER_ERROR
-  //           );
-  //           handleServiceResponse(despositErrorRes, res);
-  //         }
-  //         updateValue = walletValue - updateBalanceParam.amount;
-  //       }
-  //     } else if (updateBalanceParam.actionType === 'deposit') {
-  //       console.log({
-  //         address: updateBalanceParam.address,
-  //         txHash: updateBalanceParam.txHash ?? '',
-  //         amount: updateBalanceParam.amount,
-  //         tokenType: updateBalanceParam.balanceType,
-  //       });
-  //       // user deposit crypto to admin wallet
-  //       const resPayment = await paymentService.cryptoDeposit({
-  //         address: updateBalanceParam.address,
-  //         txHash: updateBalanceParam.txHash ?? '',
-  //         amount: updateBalanceParam.amount,
-  //         tokenType: updateBalanceParam.balanceType,
-  //       });
-
-  //       console.log({ resPayment });
-
-  //       if (!resPayment) {
-  //         const despositErrorRes = new ServiceResponse(
-  //           ResponseStatus.Failed,
-  //           'unable deposit',
-  //           null,
-  //           StatusCodes.INTERNAL_SERVER_ERROR
-  //         );
-  //         handleServiceResponse(despositErrorRes, res);
-  //       }
-  //       updateValue = walletValue + updateBalanceParam.amount;
-  //     } else {
-  //       updateValue = walletValue;
-  //     }
-  //     const serviceResponse = await userService.updateUserBalance(id, updateParams, updateValue);
-  //     handleServiceResponse(serviceResponse, res);
-  //   } catch (error) {
-  //     console.log(error);
-  //     const despositErrorRes = new ServiceResponse(
-  //       ResponseStatus.Failed,
-  //       'updating balance error',
-  //       null,
-  //       StatusCodes.INTERNAL_SERVER_ERROR
-  //     );
-  //     handleServiceResponse(despositErrorRes, res);
-  //   }
-  // });
+  router.post('/:id/balance', async (req: Request, res: Response) => {});
 
   return router;
 })();
