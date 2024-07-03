@@ -1,6 +1,10 @@
 import * as web3 from '@solana/web3.js';
 import bs58 from 'bs58';
 
+export const solConnection = new web3.Connection(
+  'https://mainnet.helius-rpc.com/?api-key=55065729-bda8-4cf8-87a1-7bd64cf22726'
+);
+
 export const createWallet = () => {
   const newKepair = new web3.Keypair();
   const publicKey = newKepair.publicKey.toString();
@@ -14,4 +18,16 @@ export const importWallet = (privateKey: string) => {
   const keypair = web3.Keypair.fromSecretKey(privateKeyUint8Array);
   const publicKey = keypair.publicKey.toBase58();
   return { publicKey, privateKey };
+};
+
+export const getTransaction = async (txHash: string) => {
+  let info = await solConnection.getTransaction(txHash, {
+    maxSupportedTransactionVersion: 0,
+  });
+  while (info == null) {
+    info = await solConnection.getTransaction(txHash, {
+      maxSupportedTransactionVersion: 0,
+    });
+  }
+  return info;
 };

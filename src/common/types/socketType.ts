@@ -8,14 +8,17 @@ export interface ServerToClientEvents {
   error: (data: string) => void;
   'user banned': () => void;
   'notify-error': (data: string) => void;
-  'game-join-error': (data: string) => void;
   'update-credit': (data: number) => void;
   'bet-cashout-error': (data: string) => void;
   'bet-cashout-success': (result: any) => void;
   'game-call-bot-error': (error: string) => void;
   'game-call-bot-success': () => void;
 
-  //crashgame Events
+  // user Events
+  'credit-balance': (data: { username: string; credit: number }) => void;
+  'site-join-error': (data: string) => void;
+
+  // crashgame Events
   'game-status': (data: { players: FormattedPlayerBetType[]; game_status: number }) => void;
   'game-bets': (bets: PendingBetType[]) => void;
   'game-starting': (data: { _id: string | null; privateHash: string | null; timeUntilStart?: number }) => void;
@@ -35,15 +38,19 @@ export interface ServerToClientEvents {
 
   'get-crashgame-history-error': (data: string) => void;
   'game-join-success': (data: FormattedPlayerBetType) => void;
+  'game-join-error': (data: string) => void;
   'previous-crashgame-history-response': (result: any) => void;
 
-  //chat
+  // chat
   message: (data: { _id: Types.ObjectId; user: IChatUser; message: string; sentAt: Date }) => void;
   'send-chat-history': (data: { message: string; chatHistories: IchatEmitHistory[] }) => void;
 }
 
 export interface ClientToServerEvents {
   hello: () => void;
+
+  // user Events
+  'credit-balance': (userId: string) => void;
 
   //crashgameevents
   auth: (token: string) => void;

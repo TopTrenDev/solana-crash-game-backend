@@ -1,5 +1,5 @@
 // Import Dependencies
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 const { Schema, SchemaTypes } = mongoose;
 
 // Setup WalletTransaction Schema
@@ -15,50 +15,50 @@ const WalletTransactionSchema = new Schema({
   extraData: {
     coinflipGameId: {
       type: SchemaTypes.ObjectId,
-      ref: "CoinflipGame",
+      ref: 'CoinflipGame',
     },
     jackpotGameId: {
       type: SchemaTypes.ObjectId,
-      ref: "JackpotGame",
+      ref: 'JackpotGame',
     },
     rouletteGameId: {
       type: SchemaTypes.ObjectId,
-      ref: "RouletteGame",
+      ref: 'RouletteGame',
     },
     crashGameId: {
       type: SchemaTypes.ObjectId,
-      ref: "CrashGame",
+      ref: 'CrashGame',
     },
     transactionId: {
       type: SchemaTypes.ObjectId,
-      ref: "CryptoTransaction",
+      ref: 'CryptoTransaction',
     },
     couponId: {
       type: SchemaTypes.ObjectId,
-      ref: "CouponCode",
+      ref: 'CouponCode',
     },
     affiliatorId: {
       type: SchemaTypes.ObjectId,
-      ref: "User",
+      ref: 'User',
     },
     modifierId: {
       type: SchemaTypes.ObjectId,
-      ref: "User",
+      ref: 'User',
     },
     raceId: {
       type: SchemaTypes.ObjectId,
-      ref: "Race",
+      ref: 'Race',
     },
     triviaGameId: {
       type: SchemaTypes.ObjectId,
-      ref: "Trivia",
+      ref: 'Trivia',
     },
   },
 
   // What user does this belong to
   _user: {
     type: SchemaTypes.ObjectId,
-    ref: "User",
+    ref: 'User',
   },
 
   // When document was inserted
@@ -69,5 +69,5 @@ const WalletTransactionSchema = new Schema({
 });
 
 // Create and export the new model
-const WalletTransaction = mongoose.model("WalletTransaction", WalletTransactionSchema);
+const WalletTransaction = mongoose.model('WalletTransaction', WalletTransactionSchema);
 export default WalletTransaction;
