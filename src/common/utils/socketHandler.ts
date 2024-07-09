@@ -7,6 +7,7 @@ import type { ClientToServerEvents, ServerToClientEvents, InterServerEvents, Soc
 import * as crashController from '@/api/crash/crash';
 import * as chatController from '@/api/chat/chat';
 import * as userController from '@/api/user/userSocket';
+import * as leaderboardController from '@/api/leaderboard/leaderboardSocket';
 
 // Configure Socket.io
 const startSocketServer = (httpServer: http.Server, app: Express) => {
@@ -27,6 +28,7 @@ const startSocketServer = (httpServer: http.Server, app: Express) => {
     userController.listen(io);
     crashController.listen(io);
     chatController.listen(io);
+    leaderboardController.listen(io);
 
     console.log('WebSocket >>', 'Connected!');
   } catch (error: any) {

@@ -214,6 +214,7 @@ interface LeaderboardEntry {
 }
 
 export interface UserDocumentType extends Document {
+  _id: string;
   provider: string;
   providerId: string;
   username: string;

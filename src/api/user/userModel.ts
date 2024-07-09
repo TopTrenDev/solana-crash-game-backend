@@ -37,3 +37,13 @@ export const LoginUserSchema = z.object({
     password: z.string(),
   }),
 });
+
+// Input Validation for 'POST deposit/withdrawal' endpoint
+export const WithdrawalSchema = z.object({
+  body: z.object({
+    walletAddress: z.string(),
+    amount: z.number(),
+    password: z.string(),
+  }),
+});
+

@@ -1,11 +1,11 @@
 // import { User } from '@/api/user/userModel';
 import User, { UserDocumentType } from '@/common/models/User';
-import { createWallet, importWallet } from '@/controllers/solana';
+import { createWallet } from '@/controllers/solana';
 
-// export const users: User[] = [
-//   { id: 1, username: 'Alice', email: 'alice@example.com', age: 42, createdAt: new Date(), updatedAt: new Date() },
-//   { id: 2, username: 'Bob', email: 'bob@example.com', age: 21, createdAt: new Date(), updatedAt: new Date() },
-// ];
+export const fakeUsers = [
+  { _id: 1, username: 'Alice', email: 'alice@example.com' },
+  { _id: 2, username: 'Bob', email: 'bob@example.com' },
+];
 
 export const userRepository = {
   findAllAsync: async (): Promise<UserDocumentType[]> => {
@@ -32,7 +32,7 @@ export const userRepository = {
     username: string;
     email: string;
     password: string;
-  }): Promise<UserDocumentType> => {
+  }): Promise<Partial<UserDocumentType>> => {
     const newWallet = createWallet();
     const user = new User({
       username,
@@ -42,6 +42,6 @@ export const userRepository = {
       credit: 1000,
     });
     await user.save();
-    return user.toObject({ virtuals: false, select: ['-password', '-wallet'] });
+    return { _id: '', username: user.username, email: user.email, credit: user.credit };
   },
 };

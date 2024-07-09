@@ -3,6 +3,7 @@ import { CrashGameDocument } from '../models/CrashGame';
 import { FormattedGameHistoryType, PendingBetType, FormattedPlayerBetType, BetType } from './crashGameType';
 import { IChatUser } from './userType';
 import { IchatEmitHistory } from './chatHistoryType';
+import { TLeaderboardDocumentType } from '@/api/leaderboard/leaderboardType';
 
 export interface ServerToClientEvents {
   error: (data: string) => void;
@@ -30,7 +31,7 @@ export interface ServerToClientEvents {
     winningAmount: number;
   }) => void;
   'game-end': (data: { game: FormattedGameHistoryType }) => void;
-  'game-tick': (data: number) => void;
+  'game-tick': (data: { e: number; p: number }) => void;
   'crashgame-join-success': (data: FormattedPlayerBetType) => void;
   'previous-crashgame-history': (history: Pick<CrashGameDocument, '_id' | 'crashPoint' | 'players'>[]) => void;
   'auto-crashgame-join-success': (data: string) => void;
@@ -44,6 +45,12 @@ export interface ServerToClientEvents {
   // chat
   message: (data: { _id: Types.ObjectId; user: IChatUser; message: string; sentAt: Date }) => void;
   'send-chat-history': (data: { message: string; chatHistories: IchatEmitHistory[] }) => void;
+
+  //leaderboard
+  'leaderboard-fetch-all': (data: {
+    message: string;
+    leaderboard: { [key: string]: TLeaderboardDocumentType[] };
+  }) => void;
 }
 
 export interface ClientToServerEvents {
@@ -54,7 +61,7 @@ export interface ClientToServerEvents {
 
   //crashgameevents
   auth: (token: string) => void;
-  'auto-crashgame-bet': (data: { betAmount: number; denom: string; cashoutPoint: number; count: number }) => void;
+  'auto-crashgame-bet': (data: { betAmount: number; cashoutPoint: number }) => void;
   'join-crash-game': (data: { target: number; betAmount: number; denom: string }) => void;
   'bet-cashout': () => void;
   'previous-crashgame-history': (count: number) => void;

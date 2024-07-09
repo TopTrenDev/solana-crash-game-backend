@@ -24,7 +24,7 @@ export const authService = {
     email,
     password,
     confirmPassword,
-  }: TSignUp): Promise<ServiceResponse<UserDocumentType | null>> => {
+  }: TSignUp): Promise<ServiceResponse<Partial<UserDocumentType> | null>> => {
     try {
       if (password !== confirmPassword) {
         return new ServiceResponse(ResponseStatus.Failed, 'Passwords do not match', null, StatusCodes.BAD_REQUEST);
@@ -44,7 +44,12 @@ export const authService = {
 
       const newUser = await userRepository.createUser({ username, email, password: hashedPassword });
 
-      return new ServiceResponse<UserDocumentType>(ResponseStatus.Success, 'Registered', newUser, StatusCodes.OK);
+      return new ServiceResponse<Partial<UserDocumentType>>(
+        ResponseStatus.Success,
+        'Registered',
+        newUser,
+        StatusCodes.OK
+      );
     } catch (ex) {
       const errorMessage = `Error registering user with username ${username}:, ${(ex as Error).message}`;
       logger.error(errorMessage);
@@ -67,7 +72,7 @@ export const authService = {
       }
 
       const authToken = tokenGenerate({
-        userId: user._id as ObjectId,
+        userId: user._id as unknown as ObjectId,
       });
 
       return new ServiceResponse(ResponseStatus.Success, 'Logged in', { auth: authToken, user }, StatusCodes.OK);
@@ -79,9 +84,8 @@ export const authService = {
   },
 };
 
-const { jwtSecret, jwtExpirationTime } = authentication;
-
 const tokenGenerate = (params: IGenerateParams, expiresIn?: number) => {
+  const { jwtSecret, jwtExpirationTime } = authentication;
   const accessExpiresIn = expiresIn || Number(jwtExpirationTime).valueOf();
   const refreshExpiresIn = expiresIn || Number(jwtExpirationTime).valueOf();
   const access = createToken(params, jwtSecret, accessExpiresIn);

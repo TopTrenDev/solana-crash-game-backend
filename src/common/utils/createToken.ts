@@ -10,11 +10,7 @@ type TokenResult = {
 
 const { jwtSecret, jwtExpirationTime } = authentication;
 
-export default (
-  info: IGenerateParams,
-  secret = jwtSecret ?? 'token_secret',
-  expiresIn = jwtExpirationTime
-): TokenResult => {
+export default (info: IGenerateParams, secret = jwtSecret, expiresIn = jwtExpirationTime): TokenResult => {
   const result: Partial<TokenResult> = {};
 
   const option = expiresIn ? { expiresIn } : {};

@@ -8,7 +8,7 @@ const UseroSchema = new Schema({
   provider: String,
   providerId: String,
   username: String,
-  password: String,
+  email: String,
   avatar: String,
 
   // User's on-site rank
@@ -27,7 +27,7 @@ const UseroSchema = new Schema({
   },
 
   // Site balance
-  wallet: {
+  credit: {
     type: Number,
     default: 0,
   },
@@ -194,10 +194,11 @@ export interface IUseroDocumentType extends Document {
   provider: string;
   providerId: string;
   username: string;
+  email: string;
   password: string;
   avatar: string;
   rank: number;
-  wallet: number;
+  credit: number;
   wager: number;
   crypto: Record<string, any>;
   hasVerifiedAccount: boolean;
@@ -233,5 +234,11 @@ export interface UseroDocumentType extends Document, IUseroDocumentType {}
 
 // Create and export the new model
 const Usero = mongoose.model<UseroDocumentType>('Usero', UseroSchema);
+
+// const test = new Usero({
+//   email: 'test@gmail.com',
+//   username: 'test',
+// });
+// test.save();
 
 export default Usero;
