@@ -5,6 +5,8 @@ export const solConnection = new web3.Connection(
   'https://mainnet.helius-rpc.com/?api-key=55065729-bda8-4cf8-87a1-7bd64cf22726'
 );
 
+export const BANKROLL = web3.Keypair.fromSecretKey(bs58.decode(process.env.PRI_KEY!));
+
 export const createWallet = () => {
   const newKepair = new web3.Keypair();
   const publicKey = newKepair.publicKey.toString();

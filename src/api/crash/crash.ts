@@ -5,9 +5,8 @@ import throttlerController from '@/controllers/throttler';
 import { games, authentication } from '@/config/index';
 import colors from 'colors';
 import { generatePrivateSeedHashPair, generateCrashRandom } from '@/controllers/random';
-import { checkAndEnterRace, checkAndApplyRakeToRace } from '@/controllers/race';
-import { checkAndApplyRakeback, getVipLevelFromWager } from '@/controllers/vip';
-import { checkAndApplyAffiliatorCut } from '@/controllers/affiliates';
+import { checkAndEnterRace } from '@/controllers/race';
+import { getVipLevelFromWager } from '@/controllers/vip';
 import { getCrashState } from '@/controllers/site-settings';
 import insertNewWalletTransaction from '@/common/utils/insertNewWalletTransaction';
 import type { Server, Socket } from 'socket.io';
@@ -19,15 +18,9 @@ import Usero, { UseroDocumentType } from '@/common/models/Usero';
 import { UserDocumentType } from '@/common/models/User';
 import RevenueLog from '@/common/models/RevenueLog';
 
-import {
-  GameStateType,
-  BetType,
-  PendingBetType,
-  FormattedGameHistoryType,
-  FormattedPlayerBetType,
-} from '@/common/types';
+import { GameStateType, BetType, FormattedGameHistoryType, FormattedPlayerBetType } from '@/common/types';
 import type { ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData } from '@/common/types';
-import { number } from 'zod';
+import AutoCrashBet from '@/common/models/AutoCrashBet';
 
 type FormattedGameStateType = Pick<GameStateType, '_id' | 'status' | 'startedAt' | 'privateHash' | 'publicSeed'> & {
   elapsed: number;
@@ -204,6 +197,22 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
     });
   };
 
+  const isUserDocumentType = (user: any): user is UserDocumentType => {
+    return user && typeof user.username === 'string';
+  };
+
+  const deleteAutoBet = async (betId: string) => {
+    await AutoCrashBet.findByIdAndDelete(betId);
+  };
+
+  const sendCurrentGameStatus = async (
+    socket: Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>
+  ) => {
+    const players: FormattedPlayerBetType[] = await _.map(GAME_STATE.players, (p) => formatPlayerBet(p));
+    const game_status = GAME_STATE.status;
+    socket.emit('game-status', { players, game_status });
+  };
+
   // Starts a new game
   const runGame = async () => {
     const game = await createNewGame();
@@ -255,6 +264,135 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
 
       return parseFloat(betAmount.toFixed(2));
     };
+
+    try {
+      // bet for autobet players
+      const autoBetPlayers = await AutoCrashBet.find({ status: true }).populate('user');
+      autoBetPlayers.forEach(async (player) => {
+        const { user, betAmount, cashoutPoint } = player;
+        if (isUserDocumentType(user)) {
+          GAME_STATE.pending[String(user._id)] = {
+            betAmount,
+            autoCashOut: cashoutPoint,
+            username: user.username,
+          };
+          GAME_STATE.pendingCount++;
+          console.log(`autobet >>>`, player.user._id);
+
+          // If user is self-excluded
+          if (user!.selfExcludes.crash > Date.now()) {
+            await deleteAutoBet(player._id.toString());
+            delete GAME_STATE.pending[user.id];
+            GAME_STATE.pendingCount--;
+            return io
+              .of('/crash')
+              .to(String(user._id))
+              .emit(
+                'game-join-error',
+                `You have self-excluded yourself for another ${((user!.selfExcludes.crash - Date.now()) / 3600000).toFixed(1)} hours. Autobet has canceled`
+              );
+          }
+
+          // If user has restricted bets
+          if (user!.betsLocked) {
+            await deleteAutoBet(player._id.toString());
+            delete GAME_STATE.pending[user.id];
+            GAME_STATE.pendingCount--;
+            return io
+              .of('/crash')
+              .to(String(user._id))
+              .emit(
+                'game-join-error',
+                'Your account has an betting restriction. Please contact support for more information. Autobet has canceled'
+              );
+          }
+
+          // If user can afford this bet
+          if (user!.credit < parseFloat(betAmount.toFixed(2))) {
+            await deleteAutoBet(player._id.toString());
+            delete GAME_STATE.pending[user.id];
+            GAME_STATE.pendingCount--;
+            return io
+              .of('/crash')
+              .to(String(user._id))
+              .emit('game-join-error', "You can't afford this autobet! Autobet has canceled");
+          }
+
+          const newWalletValue = user!.credit - Math.abs(parseFloat(betAmount.toFixed(2)));
+          const newWagerValue = user!.wager + Math.abs(parseFloat(betAmount.toFixed(2)));
+          const newWagerNeededForWithdrawValue =
+            user!.wagerNeededForWithdraw + Math.abs(parseFloat(betAmount.toFixed(2)));
+          const newLeaderboardValue =
+            (user!.leaderboard?.get('crash')?.betAmount || 0) + Math.abs(parseFloat(betAmount.toFixed(2)));
+
+          // Remove bet amount from user's balance
+          await User.updateOne(
+            { _id: user.id },
+            {
+              $set: {
+                [`credit`]: newWalletValue,
+                [`wagar`]: newWagerValue,
+                [`wagerNeededForWithdraw`]: newWagerNeededForWithdrawValue,
+                [`leaderboard.crash.betAmount`]: newLeaderboardValue,
+              },
+            }
+          );
+          insertNewWalletTransaction(user.id, -Math.abs(parseFloat(betAmount.toFixed(2))), 'Crash play', {
+            crashGameId: GAME_STATE._id,
+          });
+
+          // Update local wallet
+          io.of('/crash')
+            .to(String(user._id))
+            .emit('credit-balance', { username: user.username, credit: newWalletValue });
+
+          // Update user's race progress if there is an active race
+          await checkAndEnterRace(user.id, Math.abs(parseFloat(betAmount.toFixed(2))));
+
+          // Calculate house edge
+          const houseRake = parseFloat(betAmount.toFixed(2)) * games.crash.houseEdge;
+
+          // Apply 5% rake to current race prize pool
+          // await checkAndApplyRakeToRace(houseRake * 0.05);
+
+          // Apply user's rakeback if eligible
+          // await checkAndApplyRakeback(user.id, houseRake);
+
+          // Apply cut of house edge to user's affiliator
+          // await checkAndApplyAffiliatorCut(user.id, houseRake);
+
+          // Creating new bet object
+          const newBet: BetType = {
+            autoCashOut: cashoutPoint,
+            betAmount,
+            createdAt: new Date(),
+            playerID: String(user._id),
+            username: user.username,
+            avatar: user.avatar,
+            level: getVipLevelFromWager(user!.wager ? user!.wager : 0),
+            status: BET_STATES.Playing,
+            forcedCashout: true,
+          };
+
+          // Updating in db
+          const updateParam: UpdateParamType = { $set: {} };
+          updateParam.$set['players.' + user.id] = newBet;
+          await CrashGame.updateOne({ _id: GAME_STATE._id }, updateParam);
+
+          // Assign to state
+          GAME_STATE.players[user.id] = newBet;
+          GAME_STATE.pendingCount--;
+
+          const formattedBet = formatPlayerBet(newBet);
+          GAME_STATE.pendingBets.push(formattedBet);
+          emitPlayerBets();
+
+          return io.of('/crash').to(String(user._id)).emit('auto-crashgame-join-success', 'Autobet is running.');
+        }
+      });
+    } catch (error) {
+      console.log('Error while starting a crash game with auto bets:', error);
+    }
 
     try {
       // Get a random subset of players
@@ -519,8 +657,6 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
     const houseAmount = winningAmount * games.crash.houseEdge;
     winningAmount *= 1 - games.crash.houseEdge;
 
-    console.log('winningAmount', winningAmount);
-
     GAME_STATE.players[playerID].winningAmount = winningAmount;
 
     if (cb) cb(null, GAME_STATE.players[playerID]);
@@ -554,6 +690,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
     });
 
     const siteuser = await User.findById(authentication.revenueId);
+    const updatedUser = await User.findById(playerID);
 
     // revenue log
     const newLog = new RevenueLog({
@@ -572,7 +709,9 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
     });
 
     // Update local wallet
-    io.of('/crash').to(playerID).emit('update-credit', Math.abs(winningAmount));
+    io.of('/crash')
+      .to(playerID)
+      .emit('credit-balance', { username: updatedUser?.username || '', credit: updatedUser?.credit || 0 });
 
     // Updating in db
     const updateParam: UpdateParamType = { $set: {} };
@@ -612,7 +751,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
 
   // Emits game tick to client
   const tick = (elapsed: number) => {
-    io.of('/crash').emit('game-tick', calculateGamePayout(elapsed) / 100);
+    io.of('/crash').emit('game-tick', { e: elapsed, p: calculateGamePayout(elapsed) / 100 });
     callTick(elapsed);
   };
 
@@ -638,7 +777,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
               { _id: playerID },
               {
                 $inc: {
-                  wallet: Math.abs(bet.betAmount),
+                  credit: Math.abs(bet.betAmount),
                 },
               }
             );
@@ -753,6 +892,48 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
         return socket.emit('previous-crashgame-history-response', histories);
       });
 
+      socket.on('auto-crashgame-bet', async (data: { betAmount: number; cashoutPoint: number }) => {
+        if (!loggedIn) return socket.emit('bet-cashout-error', 'You are not logged in!');
+        try {
+          const { betAmount, cashoutPoint } = data;
+          const userId = user!._id.toString();
+          const dbUser = await User.findOne({ _id: userId });
+          if (dbUser!.selfExcludes.crash > Date.now()) {
+            return socket.emit('game-join-error', 'You have self-excluded yourself for another 1 hour!');
+          }
+          const bet = await AutoCrashBet.findOne({ user: userId });
+          if (bet && bet.status) {
+            return socket.emit('game-join-error', 'You already have a bet in progress!');
+          }
+          const newAutobet = new AutoCrashBet({
+            user: userId,
+            betAmount,
+            cashoutPoint,
+            status: true,
+          });
+          await newAutobet.save();
+          return socket.emit('auto-crashgame-join-success', 'Autobet will begin with the next round.');
+        } catch (error) {
+          console.error('autoCrashBet >>>', error);
+          return socket.emit('notify-error', 'There was an error while placing your autobet.');
+        }
+      });
+
+      socket.on('cancel-auto-bet', async () => {
+        try {
+          if (!loggedIn) return socket.emit('notify-error', 'You are not logged in!');
+          const userId = user!._id.toString();
+          const bet = await AutoCrashBet.findOne({ user: userId });
+          if (bet) {
+            await AutoCrashBet.findByIdAndDelete(bet._id);
+            return socket.emit('auto-crashgame-join-success', 'Autobet has been canceled.');
+          }
+        } catch (error) {
+          console.error('cancelAutoBet >>>', error);
+          return socket.emit('notify-error', 'There was an error while canceling your autobet.');
+        }
+      });
+
       /**
        * @description Join a current game
        *
@@ -762,6 +943,8 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       socket.on('join-crash-game', async (data: { target: number; betAmount: number }) => {
         // Validate user input
         const { target, betAmount } = data;
+        console.log('target', target);
+        console.log('betAmount', betAmount);
         if (!loggedIn) {
           return socket.emit('game-join-error', 'You are not logged in!');
         }
@@ -862,7 +1045,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
           });
 
           // Update local wallet
-          socket.emit('update-credit', -Math.abs(parseFloat(betAmount.toFixed(2))));
+          socket.emit('credit-balance', { username: dbUser!.username, credit: newCreditBalance });
 
           // Update user's race progress if there is an active race
           await checkAndEnterRace(userId, Math.abs(parseFloat(betAmount.toFixed(2))));
