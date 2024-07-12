@@ -41,6 +41,8 @@ export interface ServerToClientEvents {
   'game-join-success': (data: FormattedPlayerBetType) => void;
   'game-join-error': (data: string) => void;
   'previous-crashgame-history-response': (result: any) => void;
+  'next-round-join-success': () => void;
+  'next-round-join-cancel': () => void;
 
   // chat
   message: (data: { _id: Types.ObjectId; user: IChatUser; message: string; sentAt: Date }) => void;

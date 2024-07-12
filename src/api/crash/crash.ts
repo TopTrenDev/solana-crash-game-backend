@@ -19,7 +19,13 @@ import { UserDocumentType } from '@/common/models/User';
 import RevenueLog from '@/common/models/RevenueLog';
 
 import { GameStateType, BetType, FormattedGameHistoryType, FormattedPlayerBetType } from '@/common/types';
-import type { ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData } from '@/common/types';
+import type {
+  ClientToServerEvents,
+  ServerToClientEvents,
+  InterServerEvents,
+  SocketData,
+  PendingBetType,
+} from '@/common/types';
 import AutoCrashBet from '@/common/models/AutoCrashBet';
 
 type FormattedGameStateType = Pick<GameStateType, '_id' | 'status' | 'startedAt' | 'privateHash' | 'publicSeed'> & {
@@ -69,6 +75,7 @@ const GAME_STATE: GameStateType = {
   pending: {},
   pendingCount: 0,
   pendingBets: [],
+  next: {},
   privateSeed: null,
   privateHash: null,
   publicSeed: null,
@@ -224,6 +231,8 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
     GAME_STATE.privateHash = game.privateHash!;
     GAME_STATE.publicSeed = null;
     GAME_STATE.startedAt = new Date(Date.now() + RESTART_WAIT_TIME);
+    GAME_STATE.pending = GAME_STATE.next;
+    GAME_STATE.next = {};
     GAME_STATE.players = {};
 
     // Update startedAt in db
@@ -266,6 +275,80 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
     };
 
     try {
+      // bet for previus betters
+      const previousBettingPlayerIds: string[] = Object.keys(GAME_STATE.pending);
+      previousBettingPlayerIds.map(async (playerId) => {
+        const user = await User.findById(playerId);
+        if (user) {
+          const { betAmount, autoCashOut } = GAME_STATE.pending[playerId];
+          const newWalletValue = user!.credit - Math.abs(parseFloat(betAmount.toFixed(2)));
+          const newWagerValue = user!.wager + Math.abs(parseFloat(betAmount.toFixed(2)));
+          const newWagerNeededForWithdrawValue =
+            user!.wagerNeededForWithdraw + Math.abs(parseFloat(betAmount.toFixed(2)));
+          const newLeaderboardValue =
+            (user!.leaderboard?.get('crash')?.betAmount || 0) + Math.abs(parseFloat(betAmount.toFixed(2)));
+
+          // Remove bet amount from user's balance
+          await User.findByIdAndUpdate(playerId, {
+            $set: {
+              [`credit`]: newWalletValue,
+              [`wagar`]: newWagerValue,
+              [`wagerNeededForWithdraw`]: newWagerNeededForWithdrawValue,
+              [`leaderboard.crash.betAmount`]: newLeaderboardValue,
+            },
+          });
+          insertNewWalletTransaction(playerId, -Math.abs(parseFloat(betAmount.toFixed(2))), 'Crash play', {
+            crashGameId: GAME_STATE._id,
+          });
+
+          // Update local wallet
+          io.of('/crash').to(playerId).emit('credit-balance', { username: user.username, credit: newWalletValue });
+
+          // Update user's race progress if there is an active race
+          await checkAndEnterRace(user.id, Math.abs(parseFloat(betAmount.toFixed(2))));
+
+          // Calculate house edge
+          const houseRake = parseFloat(betAmount.toFixed(2)) * games.crash.houseEdge;
+
+          // Apply 5% rake to current race prize pool
+          // await checkAndApplyRakeToRace(houseRake * 0.05);
+
+          // Apply user's rakeback if eligible
+          // await checkAndApplyRakeback(user.id, houseRake);
+
+          // Apply cut of house edge to user's affiliator
+          // await checkAndApplyAffiliatorCut(user.id, houseRake);
+
+          // Creating new bet object
+          const newBet: BetType = {
+            autoCashOut: autoCashOut || 100,
+            betAmount,
+            createdAt: new Date(),
+            playerID: playerId,
+            username: user.username,
+            avatar: user.avatar,
+            level: getVipLevelFromWager(user!.wager ? user!.wager : 0),
+            status: BET_STATES.Playing,
+            forcedCashout: true,
+          };
+
+          // Updating in db
+          const updateParam: UpdateParamType = { $set: {} };
+          updateParam.$set['players.' + user.id] = newBet;
+          await CrashGame.updateOne({ _id: GAME_STATE._id }, updateParam);
+
+          // Assign to state
+          GAME_STATE.players[user.id] = newBet;
+          GAME_STATE.pendingCount--;
+
+          const formattedBet = formatPlayerBet(newBet);
+          GAME_STATE.pendingBets.push(formattedBet);
+          emitPlayerBets();
+
+          return io.of('/crash').to(playerId).emit('crashgame-join-success', newBet);
+        }
+      });
+
       // bet for autobet players
       const autoBetPlayers = await AutoCrashBet.find({ status: true }).populate('user');
       autoBetPlayers.forEach(async (player) => {
@@ -533,8 +616,6 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       GAME_STATE.publicSeed = randomData.publicSeed;
       GAME_STATE.duration = Math.ceil(inverseGrowth(GAME_STATE.crashPoint + 1));
       GAME_STATE.startedAt = new Date();
-      GAME_STATE.pending = {};
-      GAME_STATE.pendingCount = 0;
 
       console.log(
         colors.cyan('Crash >> Starting new game'),
@@ -610,16 +691,18 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
 
       // Check if the auto cashout is reached or max profit is reached
       if (bet.autoCashOut >= 101 && bet.autoCashOut <= elapsed && bet.autoCashOut <= GAME_STATE.crashPoint!) {
-        doCashOut(bet.playerID, bet.autoCashOut, false, (err: Error | null) => {
+        doCashOut(bet.playerID, bet.autoCashOut, false, (err: Error | null, result: any) => {
           if (err) {
             console.log(colors.cyan(`Crash >> There was an error while trying to cashout`), err);
           }
+          io.of('/crash').to(bet.playerID).emit('bet-cashout-success', result);
         });
       } else if (bet.betAmount * (elapsed / 100) >= games.crash.maxProfit && elapsed <= GAME_STATE.crashPoint!) {
-        doCashOut(bet.playerID, elapsed, true, (err: Error | null) => {
+        doCashOut(bet.playerID, elapsed, true, (err: Error | null, result: any) => {
           if (err) {
             console.log(colors.cyan(`Crash >> There was an error while trying to cashout`), err);
           }
+          io.of('/crash').to(bet.playerID).emit('bet-cashout-success', result);
         });
       }
     });
@@ -671,6 +754,9 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       stoppedAt,
       winningAmount,
     });
+
+    delete GAME_STATE.players[playerID];
+    delete GAME_STATE.pending[playerID];
 
     // Giving winning balance to user
     await User.updateOne(
@@ -943,8 +1029,6 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       socket.on('join-crash-game', async (data: { target: number; betAmount: number }) => {
         // Validate user input
         const { target, betAmount } = data;
-        console.log('target', target);
-        console.log('betAmount', betAmount);
         if (!loggedIn) {
           return socket.emit('game-join-error', 'You are not logged in!');
         }
@@ -970,9 +1054,9 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
         //   );
         // }
 
-        // Check if game accepts bets
-        if (GAME_STATE.status !== GAME_STATES.Starting)
-          return socket.emit('game-join-error', 'Game is currently in progress!');
+        // // Check if game accepts bets
+        // if (GAME_STATE.status !== GAME_STATES.Starting)
+        //   return socket.emit('game-join-error', 'Game is currently in progress!');
         // Check if user already betted
         if (GAME_STATE.pending[userId] || GAME_STATE.players[userId])
           return socket.emit('game-join-error', 'You have already joined this game!');
@@ -983,14 +1067,6 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
         if (typeof target === 'number' && !isNaN(target) && target > 100) {
           autoCashOut = target;
         }
-
-        GAME_STATE.pending[userId] = {
-          betAmount,
-          autoCashOut,
-          username: user!.username,
-        };
-
-        GAME_STATE.pendingCount++;
 
         try {
           // Get user from database
@@ -1006,8 +1082,6 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
 
           // If user has restricted bets
           if (dbUser!.betsLocked) {
-            delete GAME_STATE.pending[userId];
-            GAME_STATE.pendingCount--;
             return socket.emit(
               'game-join-error',
               'Your account has an betting restriction. Please contact support for more information.'
@@ -1016,10 +1090,27 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
 
           // If user can afford this bet
           if (dbUser!.credit < parseFloat(betAmount.toFixed(2))) {
-            delete GAME_STATE.pending[userId];
-            GAME_STATE.pendingCount--;
             return socket.emit('game-join-error', "You can't afford this bet!");
           }
+
+          // Check if game accepts bets
+          if (GAME_STATE.status !== GAME_STATES.Starting) {
+            if (GAME_STATE.next[userId]) {
+              delete GAME_STATE.next[userId];
+              return socket.emit('next-round-join-cancel');
+            } else {
+              GAME_STATE.next[userId] = { betAmount, autoCashOut, username: dbUser!.username };
+              return socket.emit('next-round-join-success');
+            }
+          }
+
+          GAME_STATE.pending[userId] = {
+            betAmount,
+            autoCashOut,
+            username: user!.username,
+          };
+
+          GAME_STATE.pendingCount++;
 
           const newCreditBalance = dbUser!.credit - Math.abs(parseFloat(betAmount.toFixed(2)));
           const newWagerValue = dbUser!.wager + Math.abs(parseFloat(betAmount.toFixed(2)));

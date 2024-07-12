@@ -11,6 +11,7 @@ export interface GameStateType {
   pending: { [key: string]: PendingBetType };
   pendingCount: number;
   pendingBets: PendingBetType[];
+  next: { [key: string]: PendingBetType };
   privateSeed: string | null;
   privateHash: string | null;
   publicSeed: string | null;
