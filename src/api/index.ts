@@ -5,7 +5,7 @@ import { openAPIRouter } from '@/api-docs/openAPIRouter';
 import { authRouter } from './auth/authRouter';
 import { healthCheckRouter } from './healthCheck/healthCheckRouter';
 import { userRouter } from './user/userRouter';
-import { depositRouter } from './deposit/depositRouter';
+import { cashierRouter } from './cashier/cashierRouter';
 import { statsRouter } from './stats/statsRouter';
 
 const router = express.Router();
@@ -29,8 +29,8 @@ const defaultIRoute: IRoute[] = [
     route: authRouter,
   },
   {
-    path: '/deposit',
-    route: depositRouter,
+    path: '/cashier',
+    route: cashierRouter,
   },
   {
     path: '/stats',

@@ -15,7 +15,9 @@ export const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, In
         if (typeof userId !== 'string' || userId === '') return socket.emit('site-join-error', 'Invalid userId!');
 
         const user = await User.findById(userId);
-        return socket.emit('credit-balance', { username: user?.username || 'unknownd', credit: user?.credit || 0 });
+        return socket
+          .to(userId)
+          .emit('credit-balance', { username: user?.username || 'unknownd', credit: user?.credit || 0 });
       });
     }
   );

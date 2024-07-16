@@ -38,7 +38,7 @@ export const LoginUserSchema = z.object({
   }),
 });
 
-// Input Validation for 'POST deposit/withdrawal' endpoint
+// Input Validation for 'POST cashier/withdrawal' endpoint
 export const WithdrawalSchema = z.object({
   body: z.object({
     walletAddress: z.string(),
@@ -47,3 +47,11 @@ export const WithdrawalSchema = z.object({
   }),
 });
 
+// Input Validation for 'POST cashier/withdrawal' endpoint
+export const TipsSchema = z.object({
+  body: z.object({
+    username: z.string(),
+    tipsAmount: z.number(),
+    password: z.string(),
+  }),
+});
