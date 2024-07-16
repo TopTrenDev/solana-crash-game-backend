@@ -5,7 +5,7 @@ import { pino } from 'pino';
 
 import { env } from '@/common/utils/envConfig';
 import connectDatabase from '@/common/utils/connetDatabase';
-import { depositService } from '@/api/deposit/depositService';
+import { depositService } from '@/api/cashier/cashierService';
 
 const app: Express = express();
 const logger = pino({ name: 'Deposit detector start' });

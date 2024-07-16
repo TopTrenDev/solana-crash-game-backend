@@ -5,23 +5,31 @@ import User from '@/common/models/User';
 import { BANKROLL, createWallet, getTransaction, solConnection } from '@/controllers/solana';
 import { ITransaction } from '@/common/types';
 import PaymentTx from '@/common/models/PaymentTx';
-import { userRegistry } from '../user/userRouter';
 import { ResponseStatus, ServiceResponse } from '@/common/models/serviceResponse';
 import { StatusCodes } from 'http-status-codes';
 import bcrypt from 'bcryptjs';
+import { userRepository } from '../user/userRepository';
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-interface WithdrawProps {
+interface CashierProps {
   userId: string;
-  walletAddress: string;
-  amount: number;
   password: string;
 }
 
-export const depositService = {
+interface WithdrawProps extends CashierProps {
+  walletAddress: string;
+  amount: number;
+}
+
+interface TipsProps extends CashierProps {
+  username: string;
+  tipsAmount: number;
+}
+
+export const cashierService = {
   // detect deposit
   detectDeposit: async () => {
     try {
@@ -148,6 +156,40 @@ export const depositService = {
         return new ServiceResponse(ResponseStatus.Success, 'Successfully withdraw', { txLink }, StatusCodes.OK);
       }
       return new ServiceResponse(ResponseStatus.Failed, 'Withdraw', { txLink: '' }, StatusCodes.INTERNAL_SERVER_ERROR);
+    } catch (ex) {
+      console.error(ex);
+      const errorMessage = `Error withdrawing user with userId ${userId}:, ${(ex as Error).message}`;
+      return new ServiceResponse(ResponseStatus.Failed, errorMessage, null, StatusCodes.INTERNAL_SERVER_ERROR);
+    }
+  },
+
+  tips: async ({ userId, username, tipsAmount, password }: TipsProps) => {
+    console.log(`${tipsAmount} sola is tipping to ${username} by user ${userId}`);
+    const tipsFee = 1;
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return new ServiceResponse(ResponseStatus.Failed, 'User not found', null, StatusCodes.BAD_REQUEST);
+      }
+
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) {
+        return new ServiceResponse(ResponseStatus.Failed, 'Incorrect password', null, StatusCodes.BAD_REQUEST);
+      }
+
+      const receiver = await userRepository.findByUsernameAsync(username);
+      if (!receiver) {
+        return new ServiceResponse(ResponseStatus.Failed, 'Username not found', null, StatusCodes.BAD_REQUEST);
+      }
+
+      if (user.credit < tipsAmount + tipsFee) {
+        return new ServiceResponse(ResponseStatus.Failed, 'Insufficient balance', null, StatusCodes.BAD_REQUEST);
+      }
+
+      await User.findByIdAndUpdate(user._id, { $inc: { credit: -(tipsAmount + tipsFee) } });
+      await User.findByIdAndUpdate(receiver._id, { $inc: { credit: tipsAmount } });
+
+      return new ServiceResponse(ResponseStatus.Success, 'Tips', {}, StatusCodes.OK);
     } catch (ex) {
       console.error(ex);
       const errorMessage = `Error withdrawing user with userId ${userId}:, ${(ex as Error).message}`;

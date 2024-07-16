@@ -39,7 +39,7 @@ export const userRepository = {
       email,
       password,
       wallet: newWallet,
-      credit: 1000,
+      credit: 0,
     });
     await user.save();
     return { _id: '', username: user.username, email: user.email, credit: user.credit };
