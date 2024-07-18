@@ -29,7 +29,7 @@ const UserSchema = new Schema({
      */
   },
 
-  // Wallet address
+  // Holds user's crypto address information (addresses)
   wallet: {
     publicKey: { type: String },
     privateKey: { type: String },
@@ -41,14 +41,34 @@ const UserSchema = new Schema({
     default: 0,
   },
 
-  // Wager amount
-  wager: {
-    type: Number,
-    default: 0,
+  // User stats
+  stats: {
+    // Played number
+    played: {
+      type: Number,
+      default: 0,
+    },
+    // Wager amount
+    wager: {
+      type: Number,
+      default: 0,
+    },
+    // Net profit
+    profit: {
+      total: {
+        type: Number,
+        default: 0,
+      },
+      high: {
+        type: Number,
+        default: 0,
+      },
+      low: {
+        type: Number,
+        default: 0,
+      },
+    },
   },
-
-  // Holds user's crypto address information (addresses)
-  crypto: Object,
 
   // Whether the user has verified their account (via mobile phone or csgo loyalty badge) normal it is false
   hasVerifiedAccount: {
@@ -224,9 +244,16 @@ export interface UserDocumentType extends Document {
   rank: number;
   wallet: { publicKey: string; privateKey: string };
   credit: number;
-  wager: number;
+  stats: {
+    played: number;
+    wager: number;
+    profit: {
+      total: number;
+      high: number;
+      low: number;
+    };
+  };
   leaderboard: Map<string, LeaderboardEntry>;
-  crypto: any; // Specify more detailed type if possible
   hasVerifiedAccount: boolean;
   verifiedPhoneNumber: string | null;
   accountVerified: Date | null;

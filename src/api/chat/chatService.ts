@@ -33,7 +33,7 @@ export const chatHistoryService = {
       })
         .populate(
           'user',
-          '_id username avatar hasVerifiedAccount createdAt' // Adjust the fields according to what user information you need
+          '_id username avatar hasVerifiedAccount createdAt stats' // Adjust the fields according to what user information you need
         )
         .sort({ sentAt: -1 })
         .limit(limit)
