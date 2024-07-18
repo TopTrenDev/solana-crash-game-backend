@@ -221,7 +221,7 @@ const UserSchema = new Schema({
   },
 
   // When user was created (registered)
-  created: {
+  createdAt: {
     type: Date,
     default: Date.now,
   },
@@ -280,7 +280,7 @@ export interface UserDocumentType extends Document {
   totalWithdrawn: number;
   customWagerLimit: number;
   avatarLastUpdate: number;
-  created: Date;
+  createdAt: Date;
 }
 
 // Create and export the new model

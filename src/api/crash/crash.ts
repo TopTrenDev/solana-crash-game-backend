@@ -27,6 +27,7 @@ import type {
   PendingBetType,
 } from '@/common/types';
 import AutoCrashBet from '@/common/models/AutoCrashBet';
+import GameHistory, { GameType } from '@/common/models/GameHistory';
 
 type FormattedGameStateType = Pick<GameStateType, '_id' | 'status' | 'startedAt' | 'privateHash' | 'publicSeed'> & {
   elapsed: number;
@@ -758,6 +759,8 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
     delete GAME_STATE.players[playerID];
     delete GAME_STATE.pending[playerID];
 
+    const profit = bet.betAmount * (bet.stoppedAt! / 100 - 1);
+
     const [siteUser, updatedUser] = await Promise.all([
       // Add revenue to the site wallet
       User.findByIdAndUpdate(
@@ -773,7 +776,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       User.findByIdAndUpdate(
         playerID,
         {
-          $inc: { credit: Math.abs(winningAmount), 'stats.profit.total': Math.abs(winningAmount) },
+          $inc: { credit: Math.abs(winningAmount), 'stats.profit.total': profit },
         },
         {
           new: true,
@@ -781,8 +784,22 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       ),
     ]);
 
-    if (updatedUser && updatedUser!.stats.profit.high < Math.abs(winningAmount)) {
-      await User.findByIdAndUpdate(playerID, { 'stats.profit.high': Math.abs(winningAmount) });
+    if (updatedUser) {
+      if (updatedUser!.stats.profit.high < profit) {
+        await User.findByIdAndUpdate(playerID, { 'stats.profit.high': profit });
+      }
+
+      await GameHistory.create({
+        player: bet.playerID,
+        gameId: GAME_STATE._id,
+        gameType: GameType.CRASH,
+        gamePoint: GAME_STATE.crashPoint! / 100,
+        playerBet: bet.betAmount,
+        playerPoint: bet.stoppedAt! / 100,
+        profit,
+        netProfit: updatedUser.stats.profit.total,
+        playedAt: bet.createdAt,
+      });
     }
 
     // revenue log
@@ -838,13 +855,32 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
         // Check if bet is still active
         if (bet.status !== BET_STATES.Playing) return;
 
-        const player = await User.findByIdAndUpdate(bet.playerID, {
-          $inc: {
-            'stats.profit.total': -bet.betAmount,
+        const player = await User.findByIdAndUpdate(
+          bet.playerID,
+          {
+            $inc: {
+              'stats.profit.total': -bet.betAmount,
+            },
           },
-        });
-        if (player && player.stats.profit.low < bet.betAmount) {
-          await User.findByIdAndUpdate(bet.playerID, { 'stats.profit.low': bet.betAmount });
+          {
+            new: true,
+          }
+        );
+        if (player) {
+          if (player.stats.profit.low < bet.betAmount) {
+            await User.findByIdAndUpdate(bet.playerID, { 'stats.profit.low': bet.betAmount });
+          }
+
+          await GameHistory.create({
+            player: bet.playerID,
+            gameId: GAME_STATE._id,
+            gameType: GameType.CRASH,
+            gamePoint: GAME_STATE.crashPoint! / 100,
+            playerBet: bet.betAmount,
+            profit: -bet.betAmount,
+            netProfit: player.stats.profit.total,
+            playedAt: bet.createdAt,
+          });
         }
       })
     );
