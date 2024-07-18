@@ -7,4 +7,5 @@ export type IchatEmitHistory = {
   message: string;
   sentAt: Date;
   user?: IChatUser;
+  histories?: any;
 };

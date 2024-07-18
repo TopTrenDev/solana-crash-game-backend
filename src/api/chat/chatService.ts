@@ -4,6 +4,7 @@ import ChatHistory, { ChatHistoryDocument } from '@/common/models/ChatHistory';
 import { ResponseStatus, ServiceResponse } from '@/common/models/serviceResponse';
 import { IchatEmitHistory } from '@/common/types/chatHistoryType';
 import { logger } from '@/server';
+import GameHistory from '@/common/models/GameHistory';
 
 export const chatHistoryService = {
   // Retrieves a single user by their ID
@@ -35,6 +36,7 @@ export const chatHistoryService = {
           'user',
           '_id username avatar hasVerifiedAccount createdAt stats' // Adjust the fields according to what user information you need
         )
+        // .lookup({ from: 'GameHistory', localField: 'user', foreignField: '_id', as: 'gameHistories' })
         .sort({ sentAt: -1 })
         .limit(limit)
         .exec();
@@ -42,10 +44,20 @@ export const chatHistoryService = {
       if (chatHistories.length == 0) {
         return new ServiceResponse(ResponseStatus.Success, 'No chat history found', [], StatusCodes.OK);
       }
+      const updatedChatHistories = await Promise.all(
+        chatHistories.map(async (chat: any) => {
+          const histories = await GameHistory.find({ player: chat.user.id });
+          return {
+            ...chat._doc,
+            histories,
+          };
+        })
+      );
+
       return new ServiceResponse<IchatEmitHistory[]>(
         ResponseStatus.Success,
         'Found chat histories',
-        chatHistories as unknown as IchatEmitHistory[],
+        updatedChatHistories as unknown as IchatEmitHistory[],
         StatusCodes.OK
       );
     } catch (ex) {
