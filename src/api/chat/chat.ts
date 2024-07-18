@@ -27,12 +27,10 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       // newUser.save();
 
       socket.on('get-chat-history', async (sentAt: Date) => {
-        let previousChatHistoryResponse;
-        if (sentAt) {
-          previousChatHistoryResponse = await chatHistoryService.fetchEarlierChatHistories(sentAt, 12);
-        } else {
-          previousChatHistoryResponse = await chatHistoryService.fetchEarlierChatHistories(new Date(), 12);
-        }
+        const previousChatHistoryResponse = await chatHistoryService.fetchEarlierChatHistories(
+          sentAt ? sentAt : new Date(),
+          12
+        );
         if (previousChatHistoryResponse.statusCode == 200) {
           socket.emit('send-chat-history', {
             message: previousChatHistoryResponse.message,
@@ -42,8 +40,6 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
           socket.emit('notify-error', 'Error ocurred when fetched previous chat histories!');
         }
       });
-
-      console.log(colors.cyan('Chat >> a user connected'));
 
       // Authenticate websocket connection
       socket.on('auth', async (token: string) => {
@@ -99,16 +95,10 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       });
 
       /**
-       * @description Join a current game
+       * @description New message
        *
-       * @param {number} target Auto cashout target
-       * @param {number} betAmount Bet amount
+       * @param {string} message message
        */
-
-      /**
-       * @description Cashout the current bet
-       */
-
       socket.on('message', async (message: string) => {
         try {
           if (!loggedIn) return socket.emit('notify-error', `You are not logged in!`);

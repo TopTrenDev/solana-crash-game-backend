@@ -282,7 +282,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
         if (user) {
           const { betAmount, autoCashOut } = GAME_STATE.pending[playerId];
           const newWalletValue = user!.credit - Math.abs(parseFloat(betAmount.toFixed(2)));
-          const newWagerValue = user!.wager + Math.abs(parseFloat(betAmount.toFixed(2)));
+          const newWagerValue = user!.stats.wager + Math.abs(parseFloat(betAmount.toFixed(2)));
           const newWagerNeededForWithdrawValue =
             user!.wagerNeededForWithdraw + Math.abs(parseFloat(betAmount.toFixed(2)));
           const newLeaderboardValue =
@@ -292,7 +292,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
           await User.findByIdAndUpdate(playerId, {
             $set: {
               [`credit`]: newWalletValue,
-              [`wagar`]: newWagerValue,
+              [`wager`]: newWagerValue,
               [`wagerNeededForWithdraw`]: newWagerNeededForWithdrawValue,
               [`leaderboard.crash.betAmount`]: newLeaderboardValue,
             },
@@ -327,7 +327,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
             playerID: playerId,
             username: user.username,
             avatar: user.avatar,
-            level: getVipLevelFromWager(user!.wager ? user!.wager : 0),
+            level: getVipLevelFromWager(user!.stats.wager ? user!.stats.wager : 0),
             status: BET_STATES.Playing,
             forcedCashout: true,
           };
@@ -402,7 +402,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
           }
 
           const newWalletValue = user!.credit - Math.abs(parseFloat(betAmount.toFixed(2)));
-          const newWagerValue = user!.wager + Math.abs(parseFloat(betAmount.toFixed(2)));
+          const newWagerValue = user!.stats.wager + Math.abs(parseFloat(betAmount.toFixed(2)));
           const newWagerNeededForWithdrawValue =
             user!.wagerNeededForWithdraw + Math.abs(parseFloat(betAmount.toFixed(2)));
           const newLeaderboardValue =
@@ -414,7 +414,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
             {
               $set: {
                 [`credit`]: newWalletValue,
-                [`wagar`]: newWagerValue,
+                [`wager`]: newWagerValue,
                 [`wagerNeededForWithdraw`]: newWagerNeededForWithdrawValue,
                 [`leaderboard.crash.betAmount`]: newLeaderboardValue,
               },
@@ -452,7 +452,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
             playerID: String(user._id),
             username: user.username,
             avatar: user.avatar,
-            level: getVipLevelFromWager(user!.wager ? user!.wager : 0),
+            level: getVipLevelFromWager(user!.stats.wager ? user!.stats.wager : 0),
             status: BET_STATES.Playing,
             forcedCashout: true,
           };
@@ -758,25 +758,32 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
     delete GAME_STATE.players[playerID];
     delete GAME_STATE.pending[playerID];
 
-    // Giving winning balance to user
-    await User.updateOne(
-      { _id: playerID },
-      {
-        $inc: {
-          credit: Math.abs(winningAmount),
+    const [siteUser, updatedUser] = await Promise.all([
+      // Add revenue to the site wallet
+      User.findByIdAndUpdate(
+        authentication.revenueId,
+        {
+          $inc: {
+            credit: houseAmount,
+          },
         },
-      }
-    );
+        { new: true }
+      ),
+      // Giving winning balance to user
+      User.findByIdAndUpdate(
+        playerID,
+        {
+          $inc: { credit: Math.abs(winningAmount), 'stats.profit.total': Math.abs(winningAmount) },
+        },
+        {
+          new: true,
+        }
+      ),
+    ]);
 
-    // Add revenue to the site wallet
-    await User.findByIdAndUpdate(authentication.revenueId, {
-      $inc: {
-        credit: houseAmount,
-      },
-    });
-
-    const siteuser = await User.findById(authentication.revenueId);
-    const updatedUser = await User.findById(playerID);
+    if (updatedUser && updatedUser!.stats.profit.high < Math.abs(winningAmount)) {
+      await User.findByIdAndUpdate(playerID, { 'stats.profit.high': Math.abs(winningAmount) });
+    }
 
     // revenue log
     const newLog = new RevenueLog({
@@ -785,7 +792,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       revenueType: 2,
       // Balance
       revenue: houseAmount,
-      lastBalance: siteuser!.credit,
+      lastBalance: siteUser!.credit,
     });
 
     await newLog.save();
@@ -824,6 +831,22 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
         runGame();
       },
       crashTime + START_WAIT_TIME - Date.now()
+    );
+
+    await Promise.all(
+      _.map(GAME_STATE.players, async (bet) => {
+        // Check if bet is still active
+        if (bet.status !== BET_STATES.Playing) return;
+
+        const player = await User.findByIdAndUpdate(bet.playerID, {
+          $inc: {
+            'stats.profit.total': -bet.betAmount,
+          },
+        });
+        if (player && player.stats.profit.low < bet.betAmount) {
+          await User.findByIdAndUpdate(bet.playerID, { 'stats.profit.low': bet.betAmount });
+        }
+      })
     );
 
     // Updating in db
@@ -1113,24 +1136,23 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
           GAME_STATE.pendingCount++;
 
           const newCreditBalance = dbUser!.credit - Math.abs(parseFloat(betAmount.toFixed(2)));
-          const newWagerValue = dbUser!.wager + Math.abs(parseFloat(betAmount.toFixed(2)));
+          const newPlayedNumber = dbUser!.stats.played + 1;
+          const newWagerValue = dbUser!.stats.wager + Math.abs(parseFloat(betAmount.toFixed(2)));
           const newWagerNeededForWithdrawValue =
             dbUser!.wagerNeededForWithdraw + Math.abs(parseFloat(betAmount.toFixed(2)));
           const newLeaderboardValue =
             (dbUser!.leaderboard?.get('crash')?.betAmount || 0) + Math.abs(parseFloat(betAmount.toFixed(2)));
 
           // Remove bet amount from user's balance
-          await User.updateOne(
-            { _id: userId },
-            {
-              $set: {
-                [`credit`]: newCreditBalance,
-                [`wagar`]: newWagerValue,
-                [`wagerNeededForWithdraw`]: newWagerNeededForWithdrawValue,
-                [`leaderboard.crash.betAmount`]: newLeaderboardValue,
-              },
-            }
-          );
+          await User.findByIdAndUpdate(userId, {
+            $set: {
+              [`credit`]: newCreditBalance,
+              [`stats.played`]: newPlayedNumber,
+              [`stats.wager`]: newWagerValue,
+              [`wagerNeededForWithdraw`]: newWagerNeededForWithdrawValue,
+              [`leaderboard.crash.betAmount`]: newLeaderboardValue,
+            },
+          });
           insertNewWalletTransaction(userId, -Math.abs(parseFloat(betAmount.toFixed(2))), 'Crash play', {
             crashGameId: GAME_STATE._id,
           });
@@ -1161,7 +1183,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
             playerID: userId,
             username: user!.username,
             avatar: user!.avatar,
-            level: getVipLevelFromWager(dbUser!.wager ? dbUser!.wager : 0),
+            level: getVipLevelFromWager(dbUser!.stats.wager ? dbUser!.stats.wager : 0),
             status: BET_STATES.Playing,
             forcedCashout: false,
           };

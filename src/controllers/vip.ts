@@ -8,7 +8,14 @@ import { VIPLevelType } from '@/common/types/vipType.js';
 const { numLevels, minWager, maxWager, rakeback, vipLevelNAME, vipLevelCOLORS } = games.vip;
 
 // Generate VIP Levels
-const generateVIPLevels = (numLevels, minWager, maxWager, rakeback, levelNames, levelColors) => {
+const generateVIPLevels = (
+  numLevels: number,
+  minWager: number,
+  maxWager: number,
+  rakeback: number,
+  levelNames: string,
+  levelColors: string
+) => {
   const levels = [];
   for (let i = 0; i < numLevels; i++) {
     const level = {
@@ -26,7 +33,7 @@ const generateVIPLevels = (numLevels, minWager, maxWager, rakeback, levelNames, 
 const vipLevels = generateVIPLevels(numLevels, minWager, maxWager, rakeback, vipLevelNAME, vipLevelCOLORS);
 
 // Get user VIP level
-const getVipLevelFromWager = (wager): VIPLevelType => {
+const getVipLevelFromWager = (wager: number): VIPLevelType => {
   if (wager < vipLevels[1].wagerNeeded) {
     return vipLevels[0];
   } else if (wager > vipLevels[numLevels - 1].wagerNeeded) {
@@ -37,12 +44,12 @@ const getVipLevelFromWager = (wager): VIPLevelType => {
 };
 
 // Get user next VIP level
-const getNextVipLevelFromWager = (wager) => {
+const getNextVipLevelFromWager = (wager: number) => {
   return vipLevels.filter((level) => wager < level.wagerNeeded).sort((a, b) => a.wagerNeeded - b.wagerNeeded)[0];
 };
 
 // Check if user is eligible for rakeback
-const checkAndApplyRakeback = async (userId, houseRake) => {
+const checkAndApplyRakeback = async (userId: any, houseRake: number) => {
   return new Promise(async (resolve, reject) => {
     try {
       const usero = await Usero.findOne({ _id: userId });
