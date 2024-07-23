@@ -49,7 +49,10 @@ export const chatHistoryService = {
           const histories = await GameHistory.find({ player: chat.user.id });
           return {
             ...chat._doc,
-            histories,
+            user: {
+              ...chat._doc.user._doc,
+              histories,
+            },
           };
         })
       );
