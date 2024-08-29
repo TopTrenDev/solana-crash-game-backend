@@ -276,7 +276,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
     };
 
     try {
-      // bet for previus betters
+      // bet for previous betters
       const previousBettingPlayerIds: string[] = Object.keys(GAME_STATE.pending);
       previousBettingPlayerIds.map(async (playerId) => {
         const user = await User.findById(playerId);
@@ -1116,16 +1116,16 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
         // // Check if game accepts bets
         // if (GAME_STATE.status !== GAME_STATES.Starting)
         //   return socket.emit('game-join-error', 'Game is currently in progress!');
-        // Check if user already betted
-        if (GAME_STATE.pending[userId] || GAME_STATE.players[userId])
-          return socket.emit('game-join-error', 'You have already joined this game!');
-
         let autoCashOut = -1;
 
         // Validation on the target value, if acceptable assign to auto cashout
         if (typeof target === 'number' && !isNaN(target) && target > 100) {
           autoCashOut = target;
         }
+
+        if (GAME_STATE.pending[userId] || GAME_STATE.players[userId])
+          // Check if user already betted
+          return socket.emit('game-join-error', 'You have already joined this game!');
 
         try {
           // Get user from database
@@ -1244,7 +1244,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
           delete GAME_STATE.pending[userId];
           GAME_STATE.pendingCount--;
 
-          return socket.emit('game-join-error', 'There was an error while proccessing your bet');
+          return socket.emit('game-join-error', 'There was an error while processing your bet');
         }
       });
 
