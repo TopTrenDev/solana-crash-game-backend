@@ -16,8 +16,12 @@ export interface ServerToClientEvents {
   'game-call-bot-success': () => void;
 
   // user Events
-  'credit-balance': (data: { username: string; credit: number }) => void;
+  'credit-balance': (data: { credit: number }) => void;
   'site-join-error': (data: string) => void;
+  'credit-tip-success': () => void;
+  'credit-tip-error': (data: string) => void;
+
+  'user-join-error': (data: string) => void;
 
   // crashgame Events
   'game-status': (data: { players: FormattedPlayerBetType[]; game_status: number }) => void;
@@ -60,6 +64,7 @@ export interface ClientToServerEvents {
 
   // user Events
   'credit-balance': (userId: string) => void;
+  'credit-tip': (data: { username: string; tipsAmount: number; password: string }) => void;
 
   //crashgameevents
   auth: (token: string) => void;
