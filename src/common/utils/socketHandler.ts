@@ -21,7 +21,7 @@ const startSocketServer = (httpServer: http.Server, app: Express) => {
     app.set('socketio', io);
 
     io.on('connection', (socket) => {
-      console.log('a user connected');
+      console.log('user connected');
     });
 
     // Start listeners

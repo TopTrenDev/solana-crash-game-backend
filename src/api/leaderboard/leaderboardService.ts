@@ -35,6 +35,11 @@ export const leaderboardService = {
       const leaderboard: { [key: string]: TLeaderboardDocumentType[] } = {};
       const sortCriteria = [
         {
+          $match: {
+            username: { $ne: null, $ne: '' }, // Match users with a non-null and non-empty username
+          },
+        },
+        {
           $addFields: {
             totalWinAmount: {
               $sum: {
@@ -62,6 +67,7 @@ export const leaderboardService = {
         _id: 1,
         username: 1,
         email: 1,
+        stats: 1,
         leaderboard: 1,
         avatar: 1,
         createdAt: 1,

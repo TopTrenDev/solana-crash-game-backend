@@ -114,7 +114,7 @@ const formatGameHistory = (game: GameStateType): FormattedGameHistoryType => {
     privateHash: game.privateHash,
     privateSeed: game.privateSeed,
     publicSeed: game.publicSeed,
-    crashPoint: game.crashPoint! / 100,
+    crashPoint: game.crashPoint,
   };
 
   return formatted;
@@ -965,7 +965,7 @@ const listen = (io: Server<ClientToServerEvents, ServerToClientEvents, InterServ
       let loggedIn = false;
       let user: UserDocumentType | null = null;
 
-      // Throttle connnections
+      // Throttle connections
       socket.use(throttlerController(socket));
 
       // Authenticate websocket connection
