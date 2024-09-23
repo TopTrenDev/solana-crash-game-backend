@@ -1,26 +1,26 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
-    "module": "CommonJS",
+    "target": "ES6",
+    "allowJs": true,
+    "esModuleInterop": true,
+    "module": "ES2022",
+    "moduleResolution": "node",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "declaration": true,
+    "sourceMap": false,
+    // "rootDir": "./src",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["src/*"],
     },
-    "moduleResolution": "Node",
-    "outDir": "dist",
-    "importsNotUsedAsValues": "remove",
-    "esModuleInterop": true,
+    "outDir": "./dist",
     "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "noPropertyAccessFromIndexSignature": false,
-    "skipLibCheck": true,
-    "ignoreDeprecations": "5.0",
-    "types": ["vitest/globals"]
+    "resolveJsonModule": true,
+    "checkJs": false,
   },
-  "ts-node": {
-    "esm": true
-  },
-  "extends": [],
+  "include": ["src/"],
   "exclude": ["node_modules"],
-  "include": ["src/**/*.ts"]
 }
