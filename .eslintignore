@@ -1,4 +1,5 @@
 dist
-coverage
-package-lock.json
-package.json
+build
+*.spec.ts
+.eslintrc.js
+.prettierrc.js

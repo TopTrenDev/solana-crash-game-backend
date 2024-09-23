@@ -1,77 +1,67 @@
-export const site = {
-  // Site configurations on server startup
-  enableMaintenanceOnStart: false,
-  manualWithdrawsEnabled: true,
-  enableLoginOnStart: true,
-  // Site endpoints
-  backend: {
-    productionUrl: '', //kujiracasino.com is virtual domain
-    developmentUrl: 'http://localhost:8080',
-  },
-  frontend: {
-    productionUrl: '', //localhost do http://localhost:3000 // else if you deploy it put "https://kujiracasino.com"
-    developmentUrl: 'http://localhost:3000',
-  },
-  adminFrontend: {
-    productionUrl: '',
-    developmentUrl: '',
-  },
-};
+export enum ENVS {
+  Production = "production",
+  Development = "development",
+  Local = "local",
+}
 
-// Each specific game configuration
-export const database = {
-  developmentMongoURI: 'mongodb://127.0.0.1:27017/solcrash', // MongoURI to use in development
-  productionMongoURI: 'mongodb+srv://oliverb25f:FujiOka8-1225@cluster0.ughyjc0.mongodb.net/crash', // MongoURI to use in production
-};
+// Load environment variables
+export const IS_PRODUCTION: boolean = process.env.NODE_ENV === ENVS.Production;
 
-export const games = {
-  exampleGame: {
-    minBetAmount: 1, // Min bet amount (in coins)
-    maxBetAmount: 100000, // Max bet amount (in coins)
-    feePercentage: 0.1, // House fee percentage
-  },
-  race: {
-    prizeDistribution: [40, 20, 14.5, 7, 5.5, 4.5, 3.5, 2.5, 1.5, 1], // How is the prize distributed (place = index + 1)
-  },
-  vip: {
-    minDepositForWithdraw: 5, // You must have deposited atleast this amount before withdrawing
-    minWithdrawAmount: 5, // Minimum Withdraw Amount
-    levelToChat: 2, // The level amount you need to chat
-    levelToTip: 15, // The level to use the tip feature in chat
-    levelToRain: 10, // The level amount to start a rain
-    wagerToJoinRain: 5, // The wager amount to join the rain in chat
-    minRakebackClaim: 2, // The min rakeback amount you need to claim rakeback
-    numLevels: 500, // Number of total levels
-    minWager: 0, // minWager
-    maxWager: 502007, // maxWager
-    rakeback: 21.66, // Max rakeback
-    vipLevelNAME: ['Beginner', 'Professional', 'Expert', 'Crown'],
-    vipLevelCOLORS: ['rgb(215, 117, 88)', 'rgb(71, 190, 219)', 'rgb(96, 183, 100)', 'rgb(152, 38, 38)'],
-  },
-  affiliates: {
-    earningPercentage: 10, // How many percentage of house edge the affiliator will get
-  },
-  coinflip: {
-    minBetAmount: 0.1, // Min bet amount (in coins)
-    maxBetAmount: 100000, // Max bet amount (in coins)
-    feePercentage: 0.05, // House fee percentage
-  },
-  crash: {
-    minBetAmount: 0.1, // Min bet amount (in coins)
-    maxBetAmount: 100, // Max bet amount (in coins)
-    maxProfit: 500, // Max profit on crash, forces auto cashout
-    houseEdge: 0.05, // House edge percentage
-  },
-};
+export const BASE_URL: string = process.env.BASE_URL;
+export const PORT: number = parseInt(process.env.PORT);
+export const ALLOW_HOSTS: Array<string> = process.env.ALLOW_HOSTS?.split(",");
+export const SOCKET_ALLOW_HOSTS: Array<string> =
+  process.env.SOCKET_ALLOW_HOSTS?.split(",");
+export const FILE_FOLDER: string = "files";
 
-export const blochain = {
-  // EOS Blockchain provider API root url
-  // without following slashes
-  httpProviderApi: 'http://eos.greymass.com',
-};
+export const ENABLE_MAINTENANCE_ONSTART: boolean =
+  process.env.ENABLE_MAINTENANCE_ONSTART === "true";
+export const ENABLE_LOGIN_ONSTART: boolean =
+  process.env.ENABLE_LOGIN_ONSTART === "true";
 
-export const authentication = {
-  jwtSecret: 'vf4Boy2WT1bVgphxFqjEY2GjciChkXvf4Boy2WT1hkXv2', // Secret used to sign JWT's. KEEP THIS AS A SECRET 45 length
-  jwtExpirationTime: 360000, // JWT-token expiration time (in seconds)
-  revenueId: '66826fa43270000000000a52',
-};
+// Database configs
+export const MONGO_URL: string = process.env.MONGO_URL;
+
+// Security configs
+export const TOKEN_SECRET: string = process.env.TOKEN_SECRET;
+export const REFRESH_TOKEN_SECRET: string = process.env.TOKEN_SECRET;
+export const TOKEN_LIFE: number | string = process.env.TOKEN_LIFE;
+export const ACCESS_TOKEN_LIFE = Number(process.env.ACCESS_TOKEN_LIFE);
+export const REFRESH_TOKEN_LIFE = Number(process.env.REFRESH_TOKEN_LIFE);
+
+export const SECURITY_CRYPTO_ENC_KEY: string =
+  process.env.SECURITY_CRYPTO_ENC_KEY;
+export const SECURITY_CRYPTO_SEC_KEY: string =
+  process.env.SECURITY_CRYPTO_SEC_KEY;
+
+// Email service configs
+export const SENDGRID_API_KEY: string = process.env.SENDGRID_API_KEY;
+export const SENDGRID_SENDER: string = process.env.SENDGRID_SENDER;
+export const SENDGRID_SUPPORT: string =
+  process.env.SENDGRID_SUPPORT || SENDGRID_SENDER;
+export const SMTP_APP_PASSWORD: string = process.env.SMTP_APP_PASSWORD;
+export const SMTP_APP_USER: string = process.env.SMTP_APP_USER;
+
+export const POSTMARK_SERVER_TOKEN: string = process.env.POSTMARK_SERVER_TOKEN;
+
+// Blockchain configs
+export const BLOCKCHAIN_HTTPPROVIDER_API: string =
+  process.env.BLOCKCHAIN_HTTPPROVIDER_API;
+
+// Socket.io configs
+
+// Site configs
+export const ALLOW_GAME_LIST: Array<string> =
+  process.env.ALLOW_GAME_LIST?.split(",") ?? [];
+export const SITE_USER_ID: string = process.env.REVENUE_ID;
+
+// RPC configs
+export const RPC_URI: string = process.env.RPC_URI;
+
+// Admin configs
+export const ADMIN_WALLET_ADDRESS: string = process.env.ADMIN_WALLET_ADDRESS;
+export const ADMIN_WALLET_BALANCE: number = Number(
+  process.env.ADMIN_WALLET_BALANCE
+);
+
+export default process.env;
