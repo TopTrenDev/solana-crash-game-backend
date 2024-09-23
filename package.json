@@ -1,7 +1,7 @@
 {
-  "name": "kartel-casino",
+  "name": "solacrash-casino",
   "version": "1.0.0",
-  "description": "This is the casino backend for Kartel",
+  "description": "This is the casino backend for Solacrash",
   "main": "index.js",
   "type": "module",
   "engines": {
@@ -9,7 +9,7 @@
     "npm": ">=10.5"
   },
   "keywords": [
-    "kartel",
+    "solacrash",
     "casino"
   ],
   "license": "Apache-2.0",
