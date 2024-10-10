@@ -90,6 +90,7 @@ export class CrashGameSocketController {
   public setSocket = (socket: Socket) => {
     this.socket = socket;
   };
+
   public initializeSubscribe = async () => {
     const players = await _.map(
       CrashGameSocketController.gameStatus.players,
