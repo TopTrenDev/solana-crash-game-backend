@@ -75,6 +75,7 @@ class PaymentSocketHandler {
             .emit(EPaymentEvents.loginResponse, {
               aesKey: this.aesKey.toString("base64"),
               balance: this.user.credit,
+              wallet: { publicKey: this.user.wallet.publicKey },
             });
         }
       }
