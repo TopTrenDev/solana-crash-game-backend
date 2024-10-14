@@ -909,11 +909,8 @@ class CrashGameSocketListener {
     // Calculate winning amount
     let winningAmount =
       player.autoCashOut && player.stoppedAt
-        ? parseFloat((player.betAmount * (player.stoppedAt / 100)).toFixed(2)) *
-          (1 - CCrashConfig.houseEdge)
+        ? parseFloat((player.betAmount * (player.stoppedAt / 100)).toFixed(2))
         : 0;
-
-    winningAmount *= 1 - CCrashConfig.houseEdge;
 
     player.winningAmount = winningAmount;
     cb(null, player);
