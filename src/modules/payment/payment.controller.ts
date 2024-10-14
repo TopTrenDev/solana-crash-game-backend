@@ -279,11 +279,17 @@ export class PaymentController {
         },
       };
 
-      const users = await this.userService.get(filter, { _id: 1, wallet: 1 });
+      const users = await this.userService.get(filter, {
+        _id: 1,
+        wallet: 1,
+        credit: 1,
+      });
       const newPayments = await this.paymentService.checkDepositPayment({
         users,
       });
       newPayments.map(async (payment) => {
+        console.log("new deposit detected:", payment);
+
         await this.userService.updateUserBalance(
           payment.user._id,
           "credit",

@@ -87,30 +87,32 @@ export class PaymentService extends BaseService<IPaymentModel> {
 
   public checkDepositPayment = async (payload: TCheckDepositParam) => {
     try {
-      await Promise.all(
+      const results = await Promise.all(
         payload.users.map(async (user) => {
           const kp = web3.Keypair.fromSecretKey(
             bs58.decode(user.wallet.privateKey)
           );
-
           const signatures = await solConnection.getSignaturesForAddress(
             new web3.PublicKey(kp.publicKey)
           );
-          await Promise.all(
+
+          return Promise.all(
             signatures.map(async (s: any) => {
               const exist = await this.getItem({ txHash: s.signature });
               if (!exist) {
                 const info = await getTransaction(s.signature);
                 const tx = info as ITransaction;
                 const passed = new Date().getTime() / 1000 - tx.blockTime;
-                if (passed > 5 * 60) return;
+                // if (passed > 5 * 60) return null; // Skip if transaction is older than 5 minutes
+
                 const vaultId = tx.transaction.message.accountKeys.findIndex(
                   (pub) => pub.toString() === kp.publicKey.toString()
                 );
                 const payAmount =
                   tx.meta.postBalances[vaultId] - tx.meta.preBalances[vaultId];
                 const addedAmounts = (payAmount / web3.LAMPORTS_PER_SOL) * 1000;
-                if (addedAmounts) {
+
+                if (addedAmounts > 0) {
                   return {
                     user,
                     amount: addedAmounts,
@@ -119,13 +121,15 @@ export class PaymentService extends BaseService<IPaymentModel> {
                   };
                 }
               }
+              return null;
             })
           );
         })
       );
+      return results.flat().filter((item) => item !== null);
     } catch (error) {
-      console.log(error);
-      return [];
+      logger.error(`Error in checkDepositPayment: ${error.message}`);
+      throw new Error(`Failed to check deposit payments: ${error.message}`);
     }
   };
 

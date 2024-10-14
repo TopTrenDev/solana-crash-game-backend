@@ -77,20 +77,23 @@ export const autoTransfer = async (
       );
       tx.feePayer = BANKROLL.publicKey;
       tx.recentBlockhash = (await solConnection.getLatestBlockhash()).blockhash;
-      const hash = await web3.sendAndConfirmTransaction(
-        solConnection,
-        tx,
-        [from],
-        {
-          commitment: "confirmed",
-        }
-      );
-
-      return hash;
+      try {
+        const hash = await web3.sendAndConfirmTransaction(
+          solConnection,
+          tx,
+          [from, BANKROLL],
+          {
+            commitment: "confirmed",
+          }
+        );
+        return hash;
+      } catch (e) {
+        console.error("send error", e);
+      }
     }
     return;
   } catch (e) {
-    console.log(e);
+    console.log("tx failed", e);
     return;
   }
 };
