@@ -54,7 +54,7 @@ export default class UserService extends BaseService<IUserModel> {
         return "User update Failed";
       }
 
-      return { status: "success", data: updatedUser.wallet };
+      return { status: "success", data: updatedUser.credit };
     } catch (ex) {
       const errorMessage = `Error updating User`;
       logger.error(errorMessage);

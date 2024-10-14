@@ -198,7 +198,7 @@ export class PaymentController {
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
 
-    const todayAmounts = await this.paymentService.aggregateByPipeline([
+    const result = await this.paymentService.aggregateByPipeline([
       {
         $match:
           /**
@@ -207,11 +207,7 @@ export class PaymentController {
           {
             userId: String(userId),
             type: "Withdraw",
-            status: {
-              $ne: {
-                $or: ["PENDING", "PENDING_SUCCESS"],
-              },
-            },
+            status: { $nin: ["PENDING", "PENDING_SUCCESS"] },
             createdAt: {
               $gte: startOfDay,
             },
@@ -224,43 +220,16 @@ export class PaymentController {
            * fieldN: The first field name.
            */
           {
-            _id: "$denom",
+            _id: null,
             totalAmount: {
               $sum: "$amount",
             },
           },
       },
-      {
-        $group:
-          /**
-           * _id: The id of the group.
-           * fieldN: The first field name.
-           */
-          {
-            _id: null,
-            result: {
-              $push: {
-                k: "$_id",
-                v: "$totalAmount",
-              },
-            },
-          },
-      },
-      {
-        $replaceRoot:
-          /**
-           * replacementDocument: A document or string.
-           */
-          {
-            newRoot: {
-              $arrayToObject: "$result",
-            },
-          },
-      },
     ]);
 
-    if (todayAmounts.length > 0) {
-      return todayAmounts[0];
+    if (result.length > 0) {
+      return result[0].totalAmount;
     } else {
       return 0;
     }

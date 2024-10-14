@@ -90,11 +90,11 @@ class PaymentSocketHandler {
   };
 
   public withdrawHandler = async (withdrawParamString: string) => {
-    console.log("withdraw is called");
     try {
       const withdrawParam: TSocketWithDrawParam = JSON.parse(
         AESWrapper.decrypt(this.aesKey, withdrawParamString)
       );
+      console.log("withdrawing :>> ", withdrawParam.amount);
 
       if (!this.loggedIn || !this.user?._id) {
         return this.socket.emit("notify-error", `You are not logged in!`);
