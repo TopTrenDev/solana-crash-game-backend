@@ -1,3 +1,3 @@
-# Welcome to my Carsino game!
+# Welcome to my Crash Game!
 
-It is Casino game project's backend
+It is Crash game project's backend
